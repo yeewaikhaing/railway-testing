@@ -33,6 +33,7 @@ UserModule = __decorate([
             loggedInUser_middleware_1.LoggedInUserMiddleware,
             userSubscriber_middleware_1.AttachUserSubscriberMiddleware,
             _1662297001052_user_migration_1.UserMigration1662297001052,
+            //, UserValidator
             //UserSubscriber
         ]
     })
