@@ -23,6 +23,18 @@ __decorate([
     __metadata("design:type", String)
 ], User.prototype, "store_id", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ nullable: true, unique: true, type: "varchar" }),
+    __metadata("design:type", String)
+], User.prototype, "phone", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true, type: "time with time zone" }),
+    __metadata("design:type", typeorm_1.Timestamp)
+], User.prototype, "email_verified_at", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true, type: "time with time zone" }),
+    __metadata("design:type", typeorm_1.Timestamp)
+], User.prototype, "phone_verified_at", void 0);
+__decorate([
     (0, typeorm_1.ManyToOne)(() => store_entity_1.Store, (store) => store.members),
     (0, typeorm_1.JoinColumn)({ name: 'store_id' }),
     __metadata("design:type", store_entity_1.Store)
