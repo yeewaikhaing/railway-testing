@@ -11,7 +11,7 @@ export class User extends MedusaUser {
     @Column({ nullable: false })
     store_id: string;
 
-    @Column({nullable: true, unique: true, type: "varchar"})
+    @Column({nullable: true,  type: "varchar"})
     phone: string;
     @Column({nullable: true,type: "time with time zone"})
     email_verified_at: Timestamp

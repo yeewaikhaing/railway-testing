@@ -25,7 +25,6 @@ export default class UserService extends MedusaUserService {
         this.manager = container.manager;
         this.userRepository = container.userRepository;
         this.eventBus = container.eventBusService;
-
     }
     public async addUserToStore (user_id, store_id) {
         await this.atomicPhase_(async (m) => {

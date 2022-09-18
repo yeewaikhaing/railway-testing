@@ -1,6 +1,7 @@
-import { Repository as MedusaRepository } from "medusa-extender";
+import { Repository as MedusaRepository, Utils } from "medusa-extender";
 import { EntityRepository, Repository } from "typeorm";
-
-@MedusaRepository()
-@EntityRepository(/* Specify your entity */)
-export class CustomerRepository extends Repository</* Specify your entity */> {}
+import { Customer } from "../entities/customer.entity";
+import { CustomerRepository as MedusaCustomerRepo } from "@medusajs/medusa/dist/repositories/customer";
+@MedusaRepository({override: MedusaCustomerRepo})
+@EntityRepository(Customer)
+export  class CustomerRepository extends Utils.repositoryMixin<Customer, MedusaCustomerRepo>(MedusaCustomerRepo)  {}
