@@ -20,7 +20,7 @@ type InviteServiceProps = {
 
 @Service({ scope: 'SCOPED', override: MedusaInviteService })
 export class InviteService extends MedusaInviteService {
-    static readonly resolutionKey = "inviteService"
+  static readonly resolutionKey = "inviteService"
 
   private readonly manager: EntityManager;
   private readonly container: InviteServiceProps;

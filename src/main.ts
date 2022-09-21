@@ -10,7 +10,7 @@ import { OrderModule } from './modules/order/order.module';
 import { InviteModule } from './modules/invite/invite.module';
 import { RoleModule } from './modules/role/role.module';
 import { PermissionModule } from './modules/permission/permission.module';
-
+import { CustomerModule } from './modules/customer/customer.module';
 async function bootstrap() {
     const expressInstance = express();
     
@@ -22,7 +22,8 @@ async function bootstrap() {
         InviteModule,
         RoleModule,
         PermissionModule,
-        UserModule
+        UserModule,
+        CustomerModule
     ]);
     
     const port = config?.serverConfig?.port ?? 9000;

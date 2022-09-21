@@ -6,7 +6,7 @@ import { validator } from "@medusajs/medusa/dist/utils/validator"
 import { EntityManager } from "typeorm";
 
 export default async (req, res) => {
-    const validated = await validator(AdminPostInvitesInviteAcceptReq, req.body)
+  const validated = await validator(AdminPostInvitesInviteAcceptReq, req.body)
 
   const inviteService: InviteService = req.scope.resolve(InviteService.resolutionKey)
 

@@ -2,8 +2,8 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
 import { Migration } from 'medusa-extender';
 
 @Migration()
-export class CustomerPhase1Migration1663150921743 implements MigrationInterface {
-    name = 'CustomerPhase1Migration1663150921743';
+export class CustomerV1Migration1663150921743 implements MigrationInterface {
+    name = 'CustomerV1Migration1663150921743';
     
     public async up(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query(`ALTER TABLE public."customer" ADD COLUMN IF NOT EXISTS "user_name" character varying`);

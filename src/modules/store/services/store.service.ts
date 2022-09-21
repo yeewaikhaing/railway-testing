@@ -74,6 +74,7 @@ export default class StoreService extends MedusaStoreService {
     
         return event;
     }
+    
     public async createForUser(user: User): Promise<Store | void> {
         if (user.store_id) {
             return;
