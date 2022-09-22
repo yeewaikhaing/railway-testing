@@ -2,7 +2,8 @@ import { MedusaAuthenticatedRequest, Router } from 'medusa-extender';
 import { Response, NextFunction } from "express";
 import wrapHandler from '@medusajs/medusa/dist/api/middlewares/await-middleware';
 import getCustomerHandler from '@medusajs/medusa/dist/api/routes/store/customers/get-customer'
-import createCustomer from '../controllers/createCustomer.controller';
+import createCustomer from '../controllers/createCustomer';
+import { Customer } from '../entities/customer.entity';
 @Router({
     routes: [{
         requiredAuth: false,
@@ -10,18 +11,6 @@ import createCustomer from '../controllers/createCustomer.controller';
         method: 'post',
         handlers: [
             createCustomer,
-            // async (req: Request, res: Response, next: NextFunction): Promise<Response<User[]>> => {
-            //     /* You can create a function in a separate find and just imported it here. */
-            //     //const userService = req.scope.resolve('userService') as UserService;
-            //     //const users = await userService.list({})
-            //     return res.send('good luck');
-            // }
-            // (req: Request, res: Response, next: NextFunction) => {
-            //     /* You can create a function in a separate find and just imported it here. */
-            //     //const userService = req.scope.resolve('userService') as UserService;
-            //     //const users = await userService.list({})
-            //     return res.send('good luck');
-            // }
         ],
     },
     {
@@ -36,3 +25,27 @@ import createCustomer from '../controllers/createCustomer.controller';
 ] 
 })
 export class CustomerRouter {}
+
+export const defaultStoreCustomersFields: (keyof Customer)[] = [
+    "id",
+    "email",
+    "first_name",
+    "last_name",
+    "billing_address_id",
+    "phone",
+    "user_name",
+    "email_verified_at",
+    "phone_verified_at",
+    "has_account",
+    "created_at",
+    "updated_at",
+    "deleted_at",
+    "metadata",
+    "status",
+    "join_date"
+  ]
+
+  export const defaultStoreCustomersRelations = [
+    "shipping_addresses",
+    "billing_address",
+  ]

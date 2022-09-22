@@ -1,7 +1,6 @@
 import { 
     Column, 
     Entity, 
-    Index,
     Timestamp
 } from "typeorm"; 
 import { Entity as MedusaEntity } from "medusa-extender";
