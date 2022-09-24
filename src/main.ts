@@ -11,6 +11,8 @@ import { InviteModule } from './modules/invite/invite.module';
 import { RoleModule } from './modules/role/role.module';
 import { PermissionModule } from './modules/permission/permission.module';
 import { CustomerModule } from './modules/customer/customer.module';
+import { AuthenticationModule } from './modules/authentication/authentication.module';
+
 async function bootstrap() {
     const expressInstance = express();
     
@@ -23,7 +25,8 @@ async function bootstrap() {
         RoleModule,
         PermissionModule,
         UserModule,
-        CustomerModule
+        CustomerModule,
+        AuthenticationModule,
     ]);
     
     const port = config?.serverConfig?.port ?? 9000;

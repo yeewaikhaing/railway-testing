@@ -84,6 +84,31 @@ export class CustomerService extends MedusaCustomerService {
       })
     }
 
+    /**
+   * Gets a customer by email.
+   * @param {string} email - the email of the customer to get.
+   * @param {Object} config - the config object containing query settings
+   * @return {Promise<Customer>} the customer document.
+   */
+  async retrieveByEmail(
+    email: string,
+    config: FindConfig<Customer> = {}
+  ): Promise<Customer | never> {
+    return await this.customRetrieve({ email: email.toLowerCase() }, config)
+  }
+
+  /**
+   * Gets a customer by phone.
+   * @param {string} phone - the phone of the customer to get.
+   * @param {Object} config - the config object containing query settings
+   * @return {Promise<Customer>} the customer document.
+   */
+  async retrieveByPhone(
+    phone: string,
+    config: FindConfig<Customer> = {}
+  ): Promise<Customer | never> {
+    return await this.customRetrieve({ phone }, config)
+  }
     async retrieve(
       customerId: string,
       config: FindConfig<Customer> = {}
