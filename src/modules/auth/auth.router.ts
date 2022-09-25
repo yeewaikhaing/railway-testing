@@ -1,17 +1,18 @@
 import { Router } from 'medusa-extender';
 
-import loginCustomer from '../controllers/loginCustomer';
+import loginCustomer from './handlers/get-session';
+import wrapHandler from '@medusajs/medusa/dist/api/middlewares/await-middleware';
 
 @Router({
     routes: [{
-        requiredAuth: false,
+        requiredAuth: true,
         path: '/v1/store/auth',
         method: 'post',
         handlers: [
            // middlewares.authenticate(),
            // middlewares.wrap(loginCustomer)
-           loginCustomer
+           wrapHandler(loginCustomer)
         ]
     }] 
 })
-export class AuthenticationRouter {}
+export class AuthRouter {}

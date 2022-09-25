@@ -1,31 +1,31 @@
 import { Service } from 'medusa-extender';
 import { EntityManager } from 'typeorm';
 import { default as MedusaAuthService} from '@medusajs/medusa/dist/services/auth';
-import {  CustomerService } from '../../customer/v1/services/customer.service';
-import { default as MedusaUserService} from '@medusajs/medusa/dist/services/user';
+import {  CustomerService } from '../customer/v1/services/customer.service';
+//import { default as MedusaUserService} from '@medusajs/medusa/dist/services/user';
+import  UserService  from '../user/services/user.service';
 import { AuthenticateResult} from '@medusajs/medusa/dist/types/auth';
-import { Customer } from '../../customer/v1/entities/customer.entity';
-
-
+import { Customer } from '../customer/v1/entities/customer.entity';
 type InjectedDependencies = {
     manager: EntityManager;
     customerService: CustomerService;
-    userService: MedusaUserService;
+    userService: UserService;
 };
-@Service({override: MedusaAuthService})
-export class AuthenticationService extends MedusaAuthService {
-    static resolutionKey = 'authenticationService';
+@Service({scope: 'SCOPED', override: MedusaAuthService})
+export class AuthService extends MedusaAuthService {
+    static resolutionKey = 'authService';
 
     private readonly manager: EntityManager;
     private readonly custService: CustomerService;
-    private readonly userService: MedusaUserService;
+    private readonly userService: UserService;
 
-    constructor(container: InjectedDependencies, private readonly config: any) {
-        super(container);
+    constructor({ manager, userService, customerService }: InjectedDependencies) {
+        //super(container);
         
-        this.manager = container.manager;
-        this.custService = container.customerService;
-        this.userService = container.userService;
+        super({ manager, userService, customerService })
+        this.manager = manager;
+        this.custService = customerService;
+        this.userService = userService;
     }
     async authenticateCustomer(
         login_info: string,
