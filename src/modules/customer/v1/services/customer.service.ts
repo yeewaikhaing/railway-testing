@@ -1,5 +1,5 @@
 import { default as MedusaCustomerService } from "@medusajs/medusa/dist/services/customer";
-//import {CustomerService as MedusaCustomerService} from "@medusajs/medusa/dist/services";
+import jwt from "jsonwebtoken";
 import { Service } from 'medusa-extender';
 import { MedusaError } from "medusa-core-utils"
 import { EntityManager } from 'typeorm';
@@ -37,6 +37,53 @@ export class CustomerService extends MedusaCustomerService {
        this.addressRepository = container.addressRepository;
     }
     
+    /**
+   * Generate a JSON Web token, that will be sent to a customer, that wishes to
+   * reset password.
+   * The token will be signed with the customer's current password hash as a
+   * secret a long side a payload with userId and the expiry time for the token,
+   * which is always 15 minutes.
+   * @param {string} customerId - the customer to reset the password for
+   * @return {string} the generated JSON web token
+   */
+  async generateResetPasswordToken(customerId: string): Promise<string> {
+    return await this.atomicPhase_(async (manager) => {
+      const customer = await this.retrieve(customerId, {
+        select: [
+          "id",
+          "has_account",
+          "password_hash",
+          "email",
+          "first_name",
+          "last_name",
+        ],
+      })
+
+      if (!customer.has_account) {
+        throw new MedusaError(
+          MedusaError.Types.NOT_ALLOWED,
+          "You must have an account to reset the password. Create an account first"
+        )
+      }
+
+      const secret = customer.password_hash
+      const expiry = Math.floor(Date.now() / 1000) + 60 * 15 // 15 minutes ahead
+      const payload = { customer_id: customer.id, exp: expiry }
+      const token = jwt.sign(payload, secret)
+      // Notify subscribers
+      this.eventBusService_
+        .withTransaction(manager)
+        .emit(CustomerService.Events.PASSWORD_RESET, {
+          id: customerId,
+          email: customer.email,
+          first_name: customer.first_name,
+          last_name: customer.last_name,
+          token,
+        })
+      return token
+    })
+  }
+
     async create(customer: CreateCustomerInput): Promise<Customer> {//
       return await this.atomicPhase_(async (manager) => {
         const customerRepository = manager.getCustomRepository(
