@@ -1,3 +1,24 @@
+/**
+ * @oas [post] /v1/store/auth
+ * operationId: "PostAuth"
+ * summary: "Authenticate a User"
+ * x-authenticated: false
+ * description: "Logs a User in and authorizes them to manage Store settings."
+ * parameters:
+ *   - (body) login_info=* {string} The User's email or phone.
+ *   - (body) password=* {string} The User's password.
+ * tags:
+ *   - Auth
+ * responses:
+ *  "200":
+ *    description: OK
+ *    content:
+ *      application/json:
+ *        schema:
+ *          properties:
+ *            user:
+ *              $ref: "#/components/schemas/user"
+ */
 import { validator } from "@medusajs/medusa/dist/utils/validator";
 import { AuthService } from "../auth.service";
 import { EntityManager } from "typeorm";
