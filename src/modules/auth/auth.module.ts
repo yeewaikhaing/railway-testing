@@ -1,4 +1,5 @@
 import { Module } from 'medusa-extender';
+//import { StorePostAuthReq } from './handlers/login-customer';
 //import { StorePostAuthReq } from './handlers/customer-login';
 //import { StorePostAuthReq } from './handlers/get-session';
 import { AuthService } from './auth.service';

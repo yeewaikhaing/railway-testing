@@ -11,7 +11,7 @@ import { InviteModule } from './modules/invite/invite.module';
 import { RoleModule } from './modules/role/role.module';
 import { PermissionModule } from './modules/permission/permission.module';
 import { CustomerModule } from './modules/customer/customer.module';
-//import { AuthenticationModule } from './modules/authentication/authentication.module';
+import { PriceGroupModule } from './modules/priceGroup/priceGroup.module';
 import { AuthModule } from './modules/auth/auth.module';
 
 async function bootstrap() {
@@ -28,6 +28,7 @@ async function bootstrap() {
         UserModule,
         CustomerModule,
         AuthModule,
+        PriceGroupModule,
     ]);
     
     const port = config?.serverConfig?.port ?? 9000;
