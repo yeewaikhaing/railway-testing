@@ -10,6 +10,7 @@ import { AddressRepository} from "@medusajs/medusa/dist/repositories/address";
 import { CreateCustomerInput } from "../types/customer";
 import { FindConfig, Selector } from "@medusajs/medusa/dist/types/common";
 import {buildQuery} from "@medusajs/medusa/dist/utils";
+
 type InjectedDependencies = {
     manager: EntityManager;
     customerRepository: typeof CustomerRepository;

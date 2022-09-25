@@ -6,7 +6,6 @@ import { Customer } from "../entities/customer.entity";
 import jwt from "jsonwebtoken";
 import { defaultStoreCustomersFields } from "../routers/customer.router";
 import { defaultStoreCustomersRelations } from "../routers/customer.router";
-import { MedusaError } from "medusa-core-utils";
 import { core_response } from "../../../app/coreResponse";
 export default async (req, res) => {
     //let 
@@ -16,9 +15,8 @@ export default async (req, res) => {
         const manager: EntityManager = req.scope.resolve("manager");
        let customer: Customer = await manager.transaction(
         async (transactionManager) => {
-          return await customerService.create(validated);
-            //.withTransaction(transactionManager)
-            //.
+          return await customerService
+                       .create(validated);
         }
       )
     

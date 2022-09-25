@@ -1,27 +1,30 @@
-import { MedusaAuthenticatedRequest, Router } from 'medusa-extender';
-import { Response, NextFunction } from "express";
+import {  Router } from 'medusa-extender';
 import wrapHandler from '@medusajs/medusa/dist/api/middlewares/await-middleware';
-import getCustomerHandler from '@medusajs/medusa/dist/api/routes/store/customers/get-customer'
-import createCustomer from '../controllers/createCustomer';
+import middlewares from '@medusajs/medusa/dist/api/middlewares';
 import { Customer } from '../entities/customer.entity';
+import createCustomer from '../handlers/create-customer';
+import getCustomer from '../handlers/get-customer';
+
 @Router({
-    routes: [{
-        requiredAuth: false,
-        path: '/v1/store/customers',
-        method: 'post',
-        handlers: [
-            createCustomer,
-        ],
-    },
-    {
-        requiredAuth: true,
-        path: '/v1/store/customers/me',
-        method: 'get',
-        handlers: [
-            wrapHandler(getCustomerHandler)
-        ],
-       
-    }
+    routes: 
+    [
+        {
+            requiredAuth: true,
+            path: '/v1/store/customers',
+            method: 'post',
+            handlers: [
+                wrapHandler(createCustomer)
+            ],
+        },
+        {
+            requiredAuth: true,
+            path: '/v1/store/customers/me',
+            method: 'get',
+            handlers: [
+                middlewares.authenticate(),
+                middlewares.wrap(getCustomer)
+            ],
+        },
 ] 
 })
 export class CustomerRouter {}

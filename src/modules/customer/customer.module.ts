@@ -1,6 +1,4 @@
 import { Module } from 'medusa-extender';
-//import { CustomerProfileMiddleware } from './v1/middlewares/customerProfile.middleware';
-import { CustomerRegisterMiddleware } from './v1/middlewares/customerRegister.middleware';
 import { CustomerService } from './v1/services/customer.service';
 import { CustomerRouter } from './v1/routers/customer.router';
 import { CustomerRepository } from './v1/repositories/customer.repository';
@@ -14,7 +12,7 @@ import { Customer } from './v1/entities/customer.entity';
         CustomerRepository, 
         CustomerRouter, 
         CustomerService, 
-        CustomerRegisterMiddleware, 
+        
        
   ]
 })
