@@ -7,8 +7,10 @@ import middlewares, {
 import createPricingGroup from './handlers/create-pricing-group';
 import getPricingGroup from './handlers/get-pricing-group';
 import listPricingGroup from './handlers/list-pricing-group';
-import { AdminGetPriceGroupParams } from './handlers/list-pricing-group';
+import updatePricingGroup from './handlers/update-pricing-group';
 
+import { AdminGetPriceGroupParams } from './handlers/list-pricing-group';
+import { AdminPostPriceGroupsPriceGroupReq } from './handlers/update-pricing-group';
 import {AdminPostPriceGroupReq} from './handlers/create-pricing-group';
 
 @Router({
@@ -42,6 +44,16 @@ import {AdminPostPriceGroupReq} from './handlers/create-pricing-group';
                   }),
                 middlewares.authenticate(), 
                 middlewares.wrap(listPricingGroup)
+            ],
+        },
+        {
+            requiredAuth: true,
+            path: '/v1/admin/pricing-groups/:id',
+            method: 'post',
+            handlers: [
+                transformBody(AdminPostPriceGroupsPriceGroupReq),
+                middlewares.authenticate(),
+                middlewares.wrap(updatePricingGroup)
             ],
         },
     ] 

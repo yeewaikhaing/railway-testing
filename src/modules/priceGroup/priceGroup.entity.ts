@@ -17,7 +17,10 @@ export class PriceGroup extends SoftDeletableEntity{
     name: string;
 
     @Column({default: 0, nullable: false, type: "float"})
-    price: number
+    price: number;
+
+    @Column({type: "boolean", default: false})
+    is_disabled: boolean;
 
     @BeforeInsert()
     private beforeInsert(): void {

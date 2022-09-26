@@ -2,8 +2,8 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
 import { Migration } from 'medusa-extender';
 
 @Migration()
-export class CreatePriceGroupMigration1664100391672 implements MigrationInterface {
-    name = 'CreatePriceGroupMigration1664100391672';
+export class CreatePriceGroupMigration1664100391671 implements MigrationInterface {
+    name = 'CreatePriceGroupMigration1664100391671';
     
     public async up(queryRunner: QueryRunner): Promise<void> {
         let query = `
@@ -12,6 +12,7 @@ export class CreatePriceGroupMigration1664100391672 implements MigrationInterfac
             "id" character varying NOT NULL, 
             "name" character varying NOT NULL UNIQUE,
             "price" float NOT NULL DEFAULT 0,
+            "is_disabled" boolean NOT NULL DEFAULT FALSE,
             "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), 
             "updated_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
             "deleted_at" TIMESTAMP WITH TIME ZONE

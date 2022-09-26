@@ -70,7 +70,7 @@ import { CreatePriceGroupInput } from "../types/price-group";
 import { PriceGroupService}  from "../priceGroup.service";
 import { EntityManager } from "typeorm" 
 import { Request, Response } from "express";
-import {IsNumber, IsString } from "class-validator"
+import {IsNumber, IsString, IsBoolean, IsOptional} from "class-validator"
 import { core_response } from "../../app/coreResponse";
 
  export default async (req: Request, res: Response) => {
@@ -102,6 +102,9 @@ import { core_response } from "../../app/coreResponse";
   
     @IsNumber()
     price: number
+
+    @IsBoolean()
+    @IsOptional()
+    is_disabled?: boolean
   
-   
   }

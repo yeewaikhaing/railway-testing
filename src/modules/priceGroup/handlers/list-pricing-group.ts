@@ -5,8 +5,8 @@
  * parameters:
  *   - (query) id {string} ID of the pricing group
  *   - (query) name {string} Name of the pricing group
- *   - (query) price {number} Price of the pricing group
- *   - (query) q {string} Query used for searching sales channels' names and descriptions.
+ *   - (query) price {string} Price of the pricing group
+ *   - (query) q {string} Query used for searching pricing group' names and prices.
  *   - (query) order {string} The field to order the results by.
  *   - in: query
  *     name: created_at
@@ -74,21 +74,11 @@
  *            type: string
  *            description: filter by dates greater than or equal to this date
  *            format: date
- *   - (query) offset=0 {integer} How many sales channels to skip in the result.
- *   - (query) limit=20 {integer} Limit the number of sales channels returned.
- *   - (query) expand {string} (Comma separated) Which fields should be expanded in each sales channel of the result.
- *   - (query) fields {string} (Comma separated) Which fields should be included in each sales channel of the result.
- * x-codeSamples:
- *   - lang: JavaScript
- *     label: JS Client
- *     source: |
- *       import Medusa from "@medusajs/medusa-js"
- *       const medusa = new Medusa({ baseUrl: MEDUSA_BACKEND_URL, maxRetries: 3 })
- *       // must be previously logged in or use api token
- *       medusa.admin.salesChannels.list()
- *       .then(({ sales_channels, limit, offset, count }) => {
- *         console.log(sales_channels.length);
- *       });
+ *   - (query) offset=0 {integer} How many price groups to skip in the result.
+ *   - (query) limit=20 {integer} Limit the number of price groups returned.
+ *   - (query) expand {string} (Comma separated) Which fields should be expanded in each price group of the result.
+ *   - (query) fields {string} (Comma separated) Which fields should be included in each price group of the result.
+ 
  *   - lang: Shell
  *     label: cURL
  *     source: |
@@ -176,6 +166,10 @@ import { Type } from "class-transformer";
     @IsOptional()
     @IsString()
     price?: number
+
+    @IsOptional()
+    @IsString()
+    is_disabled?: boolean
   
     @IsOptional()
     @ValidateNested()
