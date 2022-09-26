@@ -2,12 +2,12 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
 import { Migration } from 'medusa-extender';
 
 @Migration()
-export class CreatePriceGroupMigration1664100391673 implements MigrationInterface {
-    name = 'CreatePriceGroupMigration1664100391673';
+export class CreatePriceGroupMigration1664100391672 implements MigrationInterface {
+    name = 'CreatePriceGroupMigration1664100391672';
     
     public async up(queryRunner: QueryRunner): Promise<void> {
         let query = `
-        CREATE TABLE "pricing_group" 
+        CREATE TABLE "price_group" 
         (
             "id" character varying NOT NULL, 
             "name" character varying NOT NULL UNIQUE,
@@ -19,10 +19,10 @@ export class CreatePriceGroupMigration1664100391673 implements MigrationInterfac
 
         await queryRunner.query(query);
     
-        await queryRunner.createPrimaryKey("pricing_group", ["id"]);
+        await queryRunner.createPrimaryKey("price_group", ["id"]);
     }
     
     public async down(queryRunner: QueryRunner): Promise<void> {
-        await queryRunner.dropTable("pricing_group", true);
+        await queryRunner.dropTable("price_group", true);
     }
 }

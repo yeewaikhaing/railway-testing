@@ -67,25 +67,33 @@
  *     $ref: "#/components/responses/500_error"
  */
 import { CreatePriceGroupInput } from "../types/price-group";
-import { PriceGroupService } from "../priceGroup.service";
+import { PriceGroupService}  from "../priceGroup.service";
 import { EntityManager } from "typeorm" 
 import { Request, Response } from "express";
 import {IsNumber, IsString } from "class-validator"
+import { core_response } from "../../app/coreResponse";
 
  export default async (req: Request, res: Response) => {
-    const validatedBody = req.validatedBody as CreatePriceGroupInput;
-    console.log("validateBody", validatedBody);
+    try {
+        const validatedBody = req.validatedBody as CreatePriceGroupInput;
+        console.log("validateBody", validatedBody);
+      
+    // const priceGroupService: PriceGroupService = req.scope.resolve(PriceGroupService.resolutionKey);
+      const priceGroupService: PriceGroupService = req.scope.resolve("priceGroupService");
+      const manager: EntityManager = req.scope.resolve("manager")
+      const priceGroup = await manager.transaction(async (transactionManager) => {
+        return await priceGroupService
+          .withTransaction(transactionManager)
+          .create(validatedBody)
+      })
     
-    const priceGroupService: PriceGroupService = req.scope.resolve(PriceGroupService.resolutionKey);
-  
-    const manager: EntityManager = req.scope.resolve("manager")
-    const priceGroup = await manager.transaction(async (transactionManager) => {
-      return await priceGroupService
-        .withTransaction(transactionManager)
-        .create(validatedBody)
-    })
-  
-    res.status(200).json({ price_group: priceGroup })
+      res.status(200).json({ price_group: priceGroup })
+    } catch (e: any) {
+      let data = { "type" : e.type, "message" : e.message};
+        let result = core_response(e.type, data)
+       
+        res.status(result['code']).send(result['body']);
+    }
   }
   
   export class AdminPostPriceGroupReq {

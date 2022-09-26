@@ -1,6 +1,6 @@
 import { Service } from 'medusa-extender';
 import { EntityManager } from 'typeorm';
-import { TransactionBaseService } from "@medusajs/medusa/dist/interfaces/transaction-base-service";
+import { TransactionBaseService } from "@medusajs/medusa/dist/interfaces";
 import { PriceGroupRepository } from './priceGroup.repository';
 import EventBusService from '@medusajs/medusa/dist/services/event-bus';
 import { FindConfig, Selector,QuerySelector } from "@medusajs/medusa/dist/types/common";
@@ -14,28 +14,27 @@ type InjectedDependencies = {
     eventBusService: EventBusService;
 };
 
-@Service({scope: 'SCOPED'})
-export class PriceGroupService extends TransactionBaseService<PriceGroupService,EntityManager> {
+@Service()
+export class PriceGroupService extends TransactionBaseService{
+ //class PriceGroupService extends TransactionBaseService{
  // export class PriceGroupService extends TransactionBaseService{
     static resolutionKey = 'priceGroupService';
-
     static Events = {
         UPDATED: "price_group.updated",
         CREATED: "price_group.created",
         DELETED: "price_group.deleted",
       }
-
     protected transactionManager_: EntityManager | undefined;
     protected readonly manager_: EntityManager;
     protected readonly priceGroupRepository_: typeof PriceGroupRepository;
     protected readonly eventBusService_: EventBusService;
-
-    //constructor({manager,priceGroupRepository, eventBusService}: InjectedDependencies) {
-      constructor(container: InjectedDependencies) {
-        super(container[0]); // [0] -> manager
-        this.manager_ = container.manager;
-        this.eventBusService_ = container.eventBusService;
-        this.priceGroupRepository_ = container.priceGroupRepository;
+    constructor({manager,priceGroupRepository, eventBusService}: InjectedDependencies) {
+    //  constructor(container: InjectedDependencies) {
+        super({manager,priceGroupRepository, eventBusService}); // 
+        //onsole.log("This is price group service");
+        this.manager_ = manager;
+        this.eventBusService_ = eventBusService;
+        this.priceGroupRepository_ = priceGroupRepository;
     }
 
     /**
@@ -67,7 +66,7 @@ export class PriceGroupService extends TransactionBaseService<PriceGroupService,
 
       throw new MedusaError(
         MedusaError.Types.NOT_FOUND,
-        `Sales channel with ${selectorConstraints} was not found`
+        `Price group with ${selectorConstraints} was not found`
       )
     }
 
@@ -147,7 +146,15 @@ export class PriceGroupService extends TransactionBaseService<PriceGroupService,
    async create(data: CreatePriceGroupInput): Promise<PriceGroup | never> {
     return await this.atomicPhase_(async (manager) => {
       const priceGroupRepo: PriceGroupRepository = manager.getCustomRepository(this.priceGroupRepository_);
-
+      
+      // check pricing group name already exists
+      const existing = await this.retrieveByName(data.name).catch(() => undefined);
+      if(existing) {
+        throw new MedusaError(
+          MedusaError.Types.DUPLICATE_ERROR,
+          "A priceing group with the given name already exist."
+        );
+      }
       const priceGroup = priceGroupRepo.create(data)
 
       await this.eventBusService_
@@ -227,3 +234,4 @@ export class PriceGroupService extends TransactionBaseService<PriceGroupService,
     })
   }
 }
+//export default PriceGroupService

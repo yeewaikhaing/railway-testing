@@ -13,9 +13,9 @@ import {AdminPostPriceGroupReq} from './handlers/create-pricing-group';
         path: '/v1/admin/pricing-groups',
         method: 'post',
         handlers: [
-            // middlewares.authenticate(), // authentication is required
-            // transformBody(AdminPostPriceGroupReq),
-            // middlewares.wrap(createPricingGroup)
+            transformBody(AdminPostPriceGroupReq),
+            middlewares.authenticate(), // authentication is required
+            middlewares.wrap(createPricingGroup)
         ],
     }] 
 })
