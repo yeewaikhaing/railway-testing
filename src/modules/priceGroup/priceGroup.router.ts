@@ -6,6 +6,8 @@ import middlewares, {
   } from '@medusajs/medusa/dist/api/middlewares';
 import createPricingGroup from './handlers/create-pricing-group';
 import getPricingGroup from './handlers/get-pricing-group';
+import listPricingGroup from './handlers/list-pricing-group';
+import { AdminGetPriceGroupParams } from './handlers/list-pricing-group';
 
 import {AdminPostPriceGroupReq} from './handlers/create-pricing-group';
 
@@ -26,8 +28,20 @@ import {AdminPostPriceGroupReq} from './handlers/create-pricing-group';
             path: '/v1/admin/pricing-groups/:id',
             method: 'get',
             handlers: [
-                middlewares.authenticate(), // authentication is required
+                middlewares.authenticate(), 
                 middlewares.wrap(getPricingGroup)
+            ],
+        },
+        {
+            requiredAuth: true,
+            path: '/v1/admin/pricing-groups',
+            method: 'get',
+            handlers: [
+                transformQuery(AdminGetPriceGroupParams, {
+                    isList: true,
+                  }),
+                middlewares.authenticate(), 
+                middlewares.wrap(listPricingGroup)
             ],
         },
     ] 

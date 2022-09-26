@@ -17,14 +17,14 @@ export class PriceGroupRepository extends Repository<PriceGroup> {
         const options_ = { ...options }
         delete options_?.where?.name
     
-        let qb = this.createQueryBuilder("pricing_group")
+        let qb = this.createQueryBuilder("price_group")
           .select()
           .where(options_.where)
           .andWhere(
             new Brackets((qb) => {
-              qb.where(`pricing_group.name ILIKE :q`, {
+              qb.where(`price_group.name ILIKE :q`, {
                 q: `%${q}%`,
-              })
+              }).orWhere(`price_group.price ILIKE :q`, { q: `%${q}%` })
             })
           )
           .skip(options.skip)
