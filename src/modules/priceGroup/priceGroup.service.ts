@@ -58,7 +58,7 @@ export class PriceGroupService extends TransactionBaseService{
       relations as (keyof PriceGroup)[],
       query
     )
-
+      console.log("price gorup in service: ", priceGroup);
     if (!priceGroup) {
       const selectorConstraints = Object.entries(selector)
         .map((key, value) => `${key}: ${value}`)
