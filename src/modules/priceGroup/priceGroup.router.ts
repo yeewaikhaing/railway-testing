@@ -8,7 +8,7 @@ import createPricingGroup from './handlers/create-pricing-group';
 import getPricingGroup from './handlers/get-pricing-group';
 import listPricingGroup from './handlers/list-pricing-group';
 import updatePricingGroup from './handlers/update-pricing-group';
-
+import deletePricingGroup from './handlers/delete-pricing-group';
 import { AdminGetPriceGroupParams } from './handlers/list-pricing-group';
 import { AdminPostPriceGroupsPriceGroupReq } from './handlers/update-pricing-group';
 import {AdminPostPriceGroupReq} from './handlers/create-pricing-group';
@@ -54,6 +54,15 @@ import {AdminPostPriceGroupReq} from './handlers/create-pricing-group';
                 transformBody(AdminPostPriceGroupsPriceGroupReq),
                 middlewares.authenticate(),
                 middlewares.wrap(updatePricingGroup)
+            ],
+        },
+        {
+            requiredAuth: true,
+            path: '/v1/admin/pricing-groups/:id',
+            method: 'delete',
+            handlers: [
+                middlewares.authenticate(),
+                middlewares.wrap(deletePricingGroup)
             ],
         },
     ] 
