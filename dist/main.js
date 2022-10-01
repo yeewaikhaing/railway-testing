@@ -15,6 +15,7 @@ const permission_module_1 = require("./modules/permission/permission.module");
 const customer_module_1 = require("./modules/customer/customer.module");
 const priceGroup_module_1 = require("./modules/priceGroup/priceGroup.module");
 const auth_module_1 = require("./modules/auth/auth.module");
+const category_module_1 = require("./modules/category/category.module");
 async function bootstrap() {
     var _a, _b;
     const expressInstance = express();
@@ -30,6 +31,7 @@ async function bootstrap() {
         customer_module_1.CustomerModule,
         auth_module_1.AuthModule,
         priceGroup_module_1.PriceGroupModule,
+        category_module_1.CategoryModule,
     ]);
     const port = (_b = (_a = config === null || config === void 0 ? void 0 : config.serverConfig) === null || _a === void 0 ? void 0 : _a.port) !== null && _b !== void 0 ? _b : 9000;
     expressInstance.listen(port, () => {

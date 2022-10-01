@@ -12,6 +12,9 @@ import middlewares from '@medusajs/medusa/dist/api/middlewares';
 
 @Router({
     routes: [
+         /**
+         * Login a Customer
+         */
     {
         requiredAuth: true,
         path: '/v1/store/auth',
@@ -20,6 +23,9 @@ import middlewares from '@medusajs/medusa/dist/api/middlewares';
            wrapHandler(loginCustomer)
         ]
     },
+        /**
+         * Get a logged in customer
+         */
     {
         requiredAuth: true,
         path: '/v1/store/auth',
@@ -29,6 +35,9 @@ import middlewares from '@medusajs/medusa/dist/api/middlewares';
            middlewares.wrap(getCustomer)
         ]
     },
+        /**
+         * Logout
+         */
     {
         requiredAuth: true,
         path: '/v1/store/auth',
@@ -38,6 +47,9 @@ import middlewares from '@medusajs/medusa/dist/api/middlewares';
            middlewares.wrap(logoutCustomer)
         ]
     },
+         /**
+         * Check the email already exist
+         */
     {
         requiredAuth: true,
         path: '/v1/store/auth/email/:email',
@@ -46,6 +58,9 @@ import middlewares from '@medusajs/medusa/dist/api/middlewares';
           wrapHandler(checkCustomerEmail)
         ]
     },
+        /**
+         * Check the phone already exist
+         */
     {
         requiredAuth: true,
         path: '/v1/store/auth/phone/:phone',
@@ -54,6 +69,9 @@ import middlewares from '@medusajs/medusa/dist/api/middlewares';
           wrapHandler(checkCustomerPhone)
         ]
     },
+        /**
+         * Check the username already exist
+         */
     {
         requiredAuth: true,
         path: '/v1/store/auth/username/:username',

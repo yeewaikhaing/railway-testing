@@ -9,7 +9,10 @@ import resetPassword from '../handlers/reset-password';
 
 @Router({
     routes: 
-    [
+    [   
+         /**
+         * Register a customer
+         */
         {
             requiredAuth: true,
             path: '/v1/store/customers',
@@ -18,6 +21,9 @@ import resetPassword from '../handlers/reset-password';
                 wrapHandler(createCustomer)
             ],
         },
+         /**
+         * Get a Customer
+         */
         {
             requiredAuth: true,
             path: '/v1/store/customers/me',
@@ -27,6 +33,9 @@ import resetPassword from '../handlers/reset-password';
                 middlewares.wrap(getCustomer)
             ],
         },
+         /**
+         * Request a reset password token
+         */
         {
             requiredAuth: true,
             path: '/v1/store/customers/reset-password-token',
@@ -35,6 +44,9 @@ import resetPassword from '../handlers/reset-password';
                 wrapHandler(passwordResetToken)
             ],
         },
+         /**
+         * Reset password
+         */
         {
             requiredAuth: true,
             path: '/v1/store/customers/reset-password',

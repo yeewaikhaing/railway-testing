@@ -16,8 +16,7 @@ type InjectedDependencies = {
 
 @Service()
 export class PriceGroupService extends TransactionBaseService{
- //class PriceGroupService extends TransactionBaseService{
- // export class PriceGroupService extends TransactionBaseService{
+  
     static resolutionKey = 'priceGroupService';
     static Events = {
         UPDATED: "price_group.updated",
@@ -58,7 +57,7 @@ export class PriceGroupService extends TransactionBaseService{
       relations as (keyof PriceGroup)[],
       query
     )
-      console.log("price gorup in service: ", priceGroup);
+     // console.log("price gorup in service: ", priceGroup);
       
     if (!priceGroup) {
       const selectorConstraints = Object.entries(selector)

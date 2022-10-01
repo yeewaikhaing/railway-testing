@@ -13,6 +13,7 @@ import { PermissionModule } from './modules/permission/permission.module';
 import { CustomerModule } from './modules/customer/customer.module';
 import { PriceGroupModule } from './modules/priceGroup/priceGroup.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { CategoryModule } from './modules/category/category.module';
 
 async function bootstrap() {
     const expressInstance = express();
@@ -29,6 +30,7 @@ async function bootstrap() {
         CustomerModule,
         AuthModule,
         PriceGroupModule,
+        CategoryModule,
     ]);
     
     const port = config?.serverConfig?.port ?? 9000;

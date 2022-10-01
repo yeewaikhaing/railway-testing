@@ -1,5 +1,4 @@
 import {  Router } from 'medusa-extender';
-import wrapHandler from '@medusajs/medusa/dist/api/middlewares/await-middleware';
 import middlewares, {
     transformBody,
     transformQuery,
@@ -67,4 +66,4 @@ import {AdminPostPriceGroupReq} from './handlers/create-pricing-group';
         },
     ] 
 })
-export class PriceGroupRouter {}
+export class PriceGroupRouter { }

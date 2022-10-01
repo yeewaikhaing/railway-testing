@@ -1,6 +1,5 @@
 import { 
     Column, 
-    Double, 
     Entity,
     BeforeInsert,
     Index
