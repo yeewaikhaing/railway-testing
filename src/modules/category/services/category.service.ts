@@ -205,4 +205,46 @@ export class CategoryService extends TransactionBaseService {
     })
   }
 
+  /**
+   * Deletes a category from
+   * 
+   * @param categoryId - the id of the category to delete
+   */
+   async delete(categoryId: string): Promise<void> {
+    return await this.atomicPhase_(async (transactionManager) => {
+      const categoryRepo = transactionManager.getCustomRepository(
+        this.categoryRepository_
+      );
+
+      const category = await this.retrieve(categoryId).catch(
+        () => void 0
+      )
+
+      if (!category) {
+        throw new MedusaError(
+          MedusaError.Types.NOT_FOUND,
+          `Category with Id, ${categoryId} was not found`
+        )
+      }
+      const remove_category_id: string = category.id;
+      const remove_category_parent_id: string = category.parent_id;
+
+      // delete category
+      await categoryRepo.softRemove(category)
+      // update its child categories's parent_id
+      await categoryRepo.update({
+          parent_id: remove_category_id // where parent_id = remove_category_id
+        },
+        {
+          parent_id: remove_category_parent_id // set parent_id = remove_category_parent_id
+        });
+
+      await this.eventBusService_
+        .withTransaction(transactionManager)
+        .emit(CategoryService.Events.DELETED, {
+          id: categoryId,
+        })
+    })
+  }
+
 }

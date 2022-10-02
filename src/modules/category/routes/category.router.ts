@@ -11,6 +11,7 @@ import getCategory from '../handlers/get-category';
 import { Category } from '../entities/category.entity';
 import updateCategory from '../handlers/update-category';
 import { AdminPostCategoryCategoryReq } from '../handlers/update-category';
+import deleteCategory from '../handlers/delete-category';
 
 export const defaultAdminCategoryRelations = [
     "children",
@@ -84,6 +85,18 @@ export const defaultAdminCategoryRelations = [
                 transformBody(AdminPostCategoryCategoryReq),
                 middlewares.authenticate(),
                 middlewares.wrap(updateCategory)
+            ],
+        },
+        /**
+         * Delete a category
+         */
+        {
+            requiredAuth: true,
+            path: '/v1/admin/categories/:id',
+            method: 'delete',
+            handlers: [
+                middlewares.authenticate(),
+                middlewares.wrap(deleteCategory)
             ],
         },
     ] 

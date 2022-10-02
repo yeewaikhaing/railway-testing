@@ -1,21 +1,10 @@
 
 /**
- * @oas [delete] /v1/admin/pricing-groups/{id}
- * description: "Deletes the pricing group."
+ * @oas [delete] /v1/admin/categories/{id}
+ * description: "Deletes the category."
  * x-authenticated: true
  * parameters:
- *   - (path) id=* {string} The ID of the pricing group.
- * x-codeSamples:
- *   - lang: JavaScript
- *     label: JS Client
- *     source: |
- *       import Medusa from "@medusajs/medusa-js"
- *       const medusa = new Medusa({ baseUrl: MEDUSA_BACKEND_URL, maxRetries: 3 })
- *       // must be previously logged in or use api token
- *       medusa.admin.salesChannels.delete(sales_channel_id)
- *       .then(({ id, object, deleted }) => {
- *         console.log(id);
- *       });
+ *   - (path) id=* {string} The ID of the category.
  *   - lang: Shell
  *     label: cURL
  *     source: |
@@ -33,11 +22,11 @@
  *           properties:
  *             id:
  *               type: string
- *               description: The ID of the deleted pricing group
+ *               description: The ID of the deleted category
  *             object:
  *               type: string
  *               description: The type of the object that was deleted.
- *               default: pricing_group
+ *               default: category
  *             deleted:
  *               type: boolean
  *               description: Whether or not the items were deleted.
@@ -56,26 +45,33 @@
  *     $ref: "#/components/responses/500_error"
  */
  import { Request, Response } from "express"
-
+ import { core_response } from "../../app/coreResponse";
  import { EntityManager } from "typeorm"
- import { PriceGroupService } from "../priceGroup.service" ;
+ import { CategoryService } from "../services/category.service" 
  
 export default async (req: Request, res: Response): Promise<void> => {
-  const { id } = req.params
+  try {
+      const { id } = req.params
 
-  const priceGroupService: PriceGroupService = req.scope.resolve(
-    PriceGroupService.resolutionKey
-  );
-  const manager: EntityManager = req.scope.resolve("manager")
-  await manager.transaction(async (transactionManager) => {
-    return await priceGroupService
-      .withTransaction(transactionManager)
-      .delete(id)
-  })
+      const categoryService: CategoryService = req.scope.resolve(
+        CategoryService.resolutionKey
+      );
+      const manager: EntityManager = req.scope.resolve("manager")
+      await manager.transaction(async (transactionManager) => {
+        return await categoryService
+          .withTransaction(transactionManager)
+          .delete(id)
+      })
 
-  res.json({
-    id,
-    object: "pricing_group",
-    deleted: true,
-  })
+      res.json({
+        id,
+        object: "category",
+        deleted: true,
+      })
+  } catch (e: any) {
+    let data = { "type" : e.type, "message" : e.message};
+      let result = core_response(e.type, data)
+     
+      res.status(result['code']).send(result['body']);
+  }
 }
