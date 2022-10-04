@@ -39,16 +39,19 @@
  
 import { defaultAdminCategoryFields } from "../routes/category.router"; 
 import { defaultAdminCategoryRelations } from "../routes/category.router"; 
+import { Category } from "../entities/category.entity";
 
  export default async (req, res) => {
     const { id } = req.params
   
     const categoryService: CategoryService = req.scope.resolve(CategoryService.resolutionKey);
   
-    const category = await categoryService.retrieve(id, {
-      relations: defaultAdminCategoryRelations,
-      select: defaultAdminCategoryFields,
-    })
-  
-    res.json({ category })
+    const categories = await categoryService.findDescendants(id);
+    res.json({categories});
+    // const category = await categoryService.retrieve(id, {
+    //   relations: defaultAdminCategoryRelations,
+    //   select: defaultAdminCategoryFields,
+    // })
+
+    //res.json({ category })
   }

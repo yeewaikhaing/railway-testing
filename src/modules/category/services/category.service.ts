@@ -1,5 +1,5 @@
 import { Service } from 'medusa-extender';
-import { EntityManager } from 'typeorm';
+import { EntityManager,getManager } from 'typeorm';
 import { EventBusService, TransactionBaseService } from "@medusajs/medusa";
 import { CategoryRepository } from '../repositories/category.repository';
 import { FindConfig, Selector,QuerySelector } from "@medusajs/medusa/dist/types/common";
@@ -100,8 +100,39 @@ export class CategoryService extends TransactionBaseService {
   ): Promise<Category | unknown> {
     return await this.retrieve_({ name }, config)
   }
+  /**
+   * Retrieve a subtree of the category
+   *
+   * @param categoryId - id of the category to retrieve
+   *
+   * @returns a category
+   */
+   async findDescendants(
+    categoryId: string,
+    config: FindConfig<Category> = {}
+  ): Promise<Category[] | never> {
 
-  
+    const manager = this.manager_;
+    const parent = await this.retrieve(categoryId);
+
+    // const children = await manager.getTreeRepository(Category)
+    //                         .findDescendants(parent);
+    const children = await manager.getTreeRepository(Category)
+                          .findDescendants(parent);
+    return children;
+  }
+ /**
+  * List a tree of cateory
+  * @returns  Category[]
+  */
+  async findTreeList(): Promise<Category[]> {
+    const manager = this.manager_
+
+    const categories = await manager.getTreeRepository(Category).findTrees();
+    //const categories = await manager.getTreeRepository(Category).findRoots();
+    
+    return categories;
+  }
   /**
    * Lists Category based on the provided parameters and includes the count of
    * Category that match the query.
@@ -118,6 +149,7 @@ export class CategoryService extends TransactionBaseService {
   ): Promise<[Category[], number]> {
     const manager = this.manager_
     const categoryRepo = manager.getCustomRepository(this.categoryRepository_);
+  
 
     const selector_ = { ...selector }
     let q: string | undefined
@@ -125,13 +157,12 @@ export class CategoryService extends TransactionBaseService {
       q = selector_.q
       delete selector_.q
     }
-
+   
     const query = buildQuery(selector_, config)
-
+   
     if (q) {
       return await categoryRepo.getFreeTextSearchResultsAndCount(q, query)
     }
-
     return await categoryRepo.findAndCount(query);
   }
 
@@ -154,6 +185,8 @@ export class CategoryService extends TransactionBaseService {
           "A category with the given name already exist."
         );
       }
+
+      
       const category = categoryRepo.create(data)
 
       await this.eventBusService_
@@ -165,6 +198,7 @@ export class CategoryService extends TransactionBaseService {
       return await categoryRepo.save(category)
     })
   }
+  
   /**
    * Update a cateogry
    *
@@ -180,7 +214,7 @@ export class CategoryService extends TransactionBaseService {
       const category = await this.retrieve(categoryId)
 
       // check the category's id and its parent id is the same
-      if(category.id == data.parent_id) {
+      if(category.id == data.parent.id) {
         throw new MedusaError(
           MedusaError.Types.INVALID_DATA,
           "This operation does not allow."
@@ -215,7 +249,9 @@ export class CategoryService extends TransactionBaseService {
       const categoryRepo = transactionManager.getCustomRepository(
         this.categoryRepository_
       );
-
+      
+      //1. retrieve a category to delete
+     // const parent_category = await categoryRepo.findOneOrFail()
       const category = await this.retrieve(categoryId).catch(
         () => void 0
       )
@@ -229,15 +265,38 @@ export class CategoryService extends TransactionBaseService {
       const remove_category_id: string = category.id;
       const remove_category_parent_id: string = category.parent_id;
 
-      // delete category
-      await categoryRepo.softRemove(category)
-      // update its child categories's parent_id
+      
+      // 1. delete itself in order to unlink its parent nodes
+      await transactionManager
+              .createQueryBuilder()
+              .delete()
+              .from("category_closure")
+              .where("descendant_id = :id", { id: category.id })
+              .execute();
+
+      //2. delete all the descendent nodes from the closure table
+      await transactionManager
+              .createQueryBuilder()
+              .delete()
+              .from("category_closure")
+              .where("ancestor_id = :id", { id: category.id })
+              .execute();
+
+      //3. update its child categories's parent_id
       await categoryRepo.update({
           parent_id: remove_category_id // where parent_id = remove_category_id
         },
         {
           parent_id: remove_category_parent_id // set parent_id = remove_category_parent_id
         });
+
+      //4. delete the category itself
+      await  transactionManager
+          .createQueryBuilder()
+          .delete()
+          .from(Category)
+          .where("id = :id", { id: category.id })
+          .execute()
 
       await this.eventBusService_
         .withTransaction(transactionManager)

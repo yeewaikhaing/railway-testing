@@ -2,83 +2,6 @@
  * @oas [get] /v1/admin/categories
  * description: "Retrieves a list of category"
  * x-authenticated: true
- * parameters:
- *   - (query) id {string} ID of the category
- *   - (query) name {string} Name of the category
- *   - (query)  of the pricing group
- *   - (query) q {string} Query used for searching 
- *   - (query) order {string} The field to order the results by.
- *   - in: query
- *     name: created_at
- *     description: Date comparison for when resulting collections were created.
- *     schema:
- *       type: object
- *       properties:
- *         lt:
- *            type: string
- *            description: filter by dates less than this date
- *            format: date
- *         gt:
- *            type: string
- *            description: filter by dates greater than this date
- *            format: date
- *         lte:
- *            type: string
- *            description: filter by dates less than or equal to this date
- *            format: date
- *         gte:
- *            type: string
- *            description: filter by dates greater than or equal to this date
- *            format: date
- *   - in: query
- *     name: updated_at
- *     description: Date comparison for when resulting collections were updated.
- *     schema:
- *       type: object
- *       properties:
- *         lt:
- *            type: string
- *            description: filter by dates less than this date
- *            format: date
- *         gt:
- *            type: string
- *            description: filter by dates greater than this date
- *            format: date
- *         lte:
- *            type: string
- *            description: filter by dates less than or equal to this date
- *            format: date
- *         gte:
- *            type: string
- *            description: filter by dates greater than or equal to this date
- *            format: date
- *   - in: query
- *     name: deleted_at
- *     description: Date comparison for when resulting collections were deleted.
- *     schema:
- *       type: object
- *       properties:
- *         lt:
- *            type: string
- *            description: filter by dates less than this date
- *            format: date
- *         gt:
- *            type: string
- *            description: filter by dates greater than this date
- *            format: date
- *         lte:
- *            type: string
- *            description: filter by dates less than or equal to this date
- *            format: date
- *         gte:
- *            type: string
- *            description: filter by dates greater than or equal to this date
- *            format: date
- *   - (query) offset=0 {integer} How many price groups to skip in the result.
- *   - (query) limit=20 {integer} Limit the number of price groups returned.
- *   - (query) expand {string} (Comma separated) Which fields should be expanded in each category of the result.
- *   - (query) fields {string} (Comma separated) Which fields should be included in each category of the result.
- 
  *   - lang: Shell
  *     label: cURL
  *     source: |
@@ -133,24 +56,14 @@ import { Type } from "class-transformer";
     const categoryService: CategoryService = req.scope.resolve(
         CategoryService.resolutionKey
     )
-  
-    let  listConfig = req.listConfig;
-    
-    const filterableFields = req.filterableFields
-   // console.log("listConfig: ", listConfig);
-    //console.log("filterableFields", filterableFields);
 
-    const [categories, count] = await categoryService.listAndCount(
-      filterableFields,
-      listConfig
-    )
-  
+    /** find Tree List */
+    let categories = await categoryService.findTreeList();
+   
     res.status(200).json({
-      categories: categories,
-      count,
-      offset: listConfig.skip,
-      limit: listConfig.take,
-    })
+      categories: categories
+    });
+    
   }
   
   export class AdminGetCategoryParams extends extendedFindParamsMixin() {

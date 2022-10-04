@@ -73,6 +73,7 @@
  import { IsString, IsBoolean, IsOptional} from "class-validator"
  import { core_response } from "../../app/coreResponse";
  import { MedusaError } from "medusa-core-utils";
+import { Category } from "../entities/category.entity";
 
   export default async (req: Request, res: Response) => {
      try {
@@ -82,8 +83,8 @@
          const manager: EntityManager = req.scope.resolve("manager")
     
          // check cateogry's parent id exists
-        if(validatedBody.parent_id) {
-          const existing = await categoryService.retrieve(validatedBody.parent_id).catch(() => undefined);
+        if(validatedBody.parent) {
+          const existing = await categoryService.retrieve(validatedBody.parent.id).catch(() => undefined);
           if(!existing) {
             throw new MedusaError(
               MedusaError.Types.INVALID_DATA,
@@ -112,9 +113,8 @@
      @IsString()
      name: string
    
-     @IsString()
      @IsOptional()
-     parent_id?: string
+     parent?: Category
  
      @IsBoolean()
      @IsOptional()

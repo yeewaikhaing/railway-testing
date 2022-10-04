@@ -12,6 +12,7 @@ import { Category } from '../entities/category.entity';
 import updateCategory from '../handlers/update-category';
 import { AdminPostCategoryCategoryReq } from '../handlers/update-category';
 import deleteCategory from '../handlers/delete-category';
+import searchCategory from '../handlers/search-category';
 
 export const defaultAdminCategoryRelations = [
     "children",
@@ -45,19 +46,30 @@ export const defaultAdminCategoryRelations = [
             ],
         },
         /**
-         * List categories
+         * Search categories
          */
         {
             requiredAuth: true,
-            path: '/v1/admin/categories',
+            path: '/v1/admin/search-categories',
             method: 'get',
             handlers: [
                 transformQuery(AdminGetCategoryParams, {
                     isList: true,
                     defaultRelations: defaultAdminCategoryRelations,
                     defaultFields: defaultAdminCategoryFields,
-                    //allowedFields: allowedAdminProductFields,
                   }),
+                middlewares.authenticate(), 
+                middlewares.wrap(searchCategory)
+            ],
+        },
+        /**
+         * List a tree categories
+         */
+         {
+            requiredAuth: true,
+            path: '/v1/admin/categories',
+            method: 'get',
+            handlers: [
                 middlewares.authenticate(), 
                 middlewares.wrap(listCategory)
             ],

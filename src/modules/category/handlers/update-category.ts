@@ -59,7 +59,9 @@
  import { core_response } from "../../app/coreResponse";
  import { CategoryService } from "../services/category.service" 
  import { EntityManager } from "typeorm"
- 
+import { Category } from "../entities/category.entity";
+import { MedusaError } from "medusa-core-utils";
+
 export default async (req: Request, res: Response) => {
   try {
       const { id } = req.params
@@ -70,7 +72,19 @@ export default async (req: Request, res: Response) => {
       const categoryService: CategoryService = req.scope.resolve(
         CategoryService.resolutionKey
       );
-      const manager: EntityManager = req.scope.resolve("manager")
+      const manager: EntityManager = req.scope.resolve("manager");
+
+       // check cateogry's parent id exists
+       if(validatedBody.parent) {
+        const existing = await categoryService.retrieve(validatedBody.parent.id).catch(() => undefined);
+        if(!existing) {
+          throw new MedusaError(
+            MedusaError.Types.INVALID_DATA,
+            "A category with the given parent Id does not exist."
+          );
+        } 
+      }
+      // update category
       const category = await manager.transaction(
         async (transactionManager) => {
           return await categoryService
@@ -93,9 +107,9 @@ export class AdminPostCategoryCategoryReq {
     @IsOptional()
     name?: string
   
-    @IsString()
+    
     @IsOptional()
-    parent_id?: string
+    parent?: Category
 
     @IsBoolean()
     @IsOptional()

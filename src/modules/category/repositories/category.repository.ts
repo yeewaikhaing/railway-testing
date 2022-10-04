@@ -1,13 +1,16 @@
 import { Repository as MedusaRepository } from "medusa-extender";
-import { EntityRepository, Repository,FindManyOptions,Brackets  } from "typeorm";
+import { EntityRepository, Repository,FindManyOptions,Brackets, TreeRepository  } from "typeorm";
 import { Category } from "../entities/category.entity";
 import { flatten, groupBy, merge } from "lodash";
 import {  Selector,ExtendedFindConfig } from "@medusajs/medusa/dist/types/common";
 
 @MedusaRepository()
 @EntityRepository(Category)
+//@TreeRepository(Category)
 export class CategoryRepository extends Repository<Category> {
+ // export class CategoryRepository extends TreeRepository<Category>{
     
+ 
     public async getFreeTextSearchResultsAndCount(
         q: string,
         options: ExtendedFindConfig<Category, Selector<Category>> = {
