@@ -1,6 +1,7 @@
 import { Router } from 'medusa-extender';
 
-import loginCustomer from './handlers/customer/login';
+
+import login from './handlers/admin/login';
 import getCustomer from './handlers/customer/get-customer';
 import logout from './handlers/admin/logout';
 import checkPhone from './handlers/admin/check-phone';
@@ -56,33 +57,30 @@ import middlewares from '@medusajs/medusa/dist/api/middlewares';
             middlewares.wrap(logout)
             ]
         },
-        
          /**
-         * Login a Customer
+         * Login
          */
-    {
-        requiredAuth: true,
-        path: '/v1/store/auth',
-        method: 'post',
-        handlers: [
-           wrapHandler(loginCustomer)
-        ]
-    },
-        /**
-         * Get a logged in customer
-         */
-    {
-        requiredAuth: true,
-        path: '/v1/store/auth',
-        method: 'get',
-        handlers: [
-           middlewares.authenticate(),
-           middlewares.wrap(getCustomer)
-        ]
-    },
+        {
+            requiredAuth: true,
+            path: '/v1/admin/auth',
+            method: 'post',
+            handlers: [
+            wrapHandler(login)
+            ]
+        },
+            /**
+             * Get a logged in customer
+             */
+        {
+            requiredAuth: true,
+            path: '/v1/store/auth',
+            method: 'get',
+            handlers: [
+            middlewares.authenticate(),
+            middlewares.wrap(getCustomer)
+            ]
+        },  
         
-      
-        
-] 
+    ] 
 })
 export class AuthRouter {}
