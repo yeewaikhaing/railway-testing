@@ -20,10 +20,10 @@
  *              $ref: "#/components/schemas/user"
  */
 import { validator } from "@medusajs/medusa/dist/utils/validator";
-import { AuthService } from "../auth.service";
+import { AuthService } from "../../auth.service";
 import { EntityManager } from "typeorm";
 import jwt from "jsonwebtoken";
-import { CustomerService } from "../../customer/v1/services/customer.service";
+import { CustomerService } from "../../../customer/v1/services/customer.service";
 import {  IsNotEmpty } from "class-validator";
 
 export default async (req, res) => {

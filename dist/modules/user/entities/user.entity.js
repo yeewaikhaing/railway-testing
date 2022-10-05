@@ -27,6 +27,10 @@ __decorate([
     __metadata("design:type", String)
 ], User.prototype, "phone", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ nullable: true, type: "varchar" }),
+    __metadata("design:type", String)
+], User.prototype, "user_name", void 0);
+__decorate([
     (0, typeorm_1.Column)({ nullable: true, type: "time with time zone" }),
     __metadata("design:type", typeorm_1.Timestamp)
 ], User.prototype, "email_verified_at", void 0);

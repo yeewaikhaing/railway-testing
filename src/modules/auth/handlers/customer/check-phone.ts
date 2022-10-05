@@ -1,11 +1,11 @@
 
 /**
- * @oas [get] /v1/store/auth/username/{username}
- * summary: "Check if username exists"
- * description: "Checks if a Customer with the given username has signed up."
+ * @oas [get] /v1/store/auth/phone/{phone}
+ * summary: "Check if phone exists"
+ * description: "Checks if a Customer with the given phone has signed up."
  * parameters:
  *   - in: path
- *     name: username
+ *     name: phone
  * responses:
  *  "200":
  *    description: OK
@@ -16,14 +16,14 @@
  *            exists:
  *              type: boolean
  */
-import { CustomerService } from "../../customer/v1/services/customer.service";
+import { CustomerService } from "../../../customer/v1/services/customer.service";
 
 export default async (req, res) => {
-  const { username } = req.params
+  const { phone } = req.params
 
   try {
     const customerService: CustomerService = req.scope.resolve(CustomerService.resolutionKey);
-    const customer = await customerService.retrieveByUsername(username, {
+    const customer = await customerService.retrieveByPhone(phone, {
       select: ["has_account"],
     })
     res.status(200).json({ exists: customer.has_account })

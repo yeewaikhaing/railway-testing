@@ -1,9 +1,9 @@
 
 /**
- * @oas [get] /v1/store/auth/email/{email}
- * operationId: "GetAuthEmail"
+ * @oas [get] /v1/admin/auth/email/{email}
+ 
  * summary: "Check if email exists"
- * description: "Checks if a Customer with the given email has signed up."
+ * description: "Checks if a User with the given email has signed up."
  * parameters:
  *   - in: path
  *     name: email
@@ -23,18 +23,20 @@
  *              type: boolean
  *              description: Whether email exists or not.
  */
-import { CustomerService } from "../../customer/v1/services/customer.service";
+import  UserService  from "../../../user/services/user.service"; 
 
 export default async (req, res) => {
   const { email } = req.params
 
   try {
-    const customerService: CustomerService = req.scope.resolve(CustomerService.resolutionKey);
-    const customer = await customerService.retrieveByEmail(email, {
-      select: ["has_account"],
-    })
-    res.status(200).json({ exists: customer.has_account })
+    const userService: UserService = req.scope.resolve(UserService.resolutionKey);
+    
+    const user = await userService.retrieveByEmail(email);
+    
+    res.status(200).json({ exists: true })
   } catch (err) {
+    console.log("error", err);
+    
     res.status(200).json({ exists: false })
   }
 }

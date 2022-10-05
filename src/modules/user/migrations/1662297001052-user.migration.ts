@@ -3,8 +3,8 @@ import { Migration } from 'medusa-extender';
 import { TableForeignKey } from 'typeorm';
 
 @Migration()
-export class UserMigration1662297001052 implements MigrationInterface {
-    name = 'UserMigration1662297001052';
+export class UserMigration1662297001059 implements MigrationInterface {
+    name = 'UserMigration1662297001059';
     
     public async up(queryRunner: QueryRunner): Promise<void> {
         const query = `ALTER TABLE public."user" ADD COLUMN IF NOT EXISTS "role_id" text;`;

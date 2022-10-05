@@ -11,15 +11,17 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.UserModule = void 0;
 const userSubscriber_middleware_1 = require("./middlewares/userSubscriber.middleware");
+const addUsername_migration_1 = require("./migrations/addUsername.migration");
+//import {UserValidator}  from '../user/validators/user.validator';
 //import { UserSubscriber } from './subscribers/user.subscriber';
-const _1662297001052_user_migration_1 = require("./1662297001052-user.migration");
+const _1662297001052_user_migration_1 = require("./migrations/1662297001052-user.migration");
 const loggedInUser_middleware_1 = require("./middlewares/loggedInUser.middleware");
 const medusa_extender_1 = require("medusa-extender");
 const user_entity_1 = require("./entities/user.entity");
 const user_repository_1 = __importDefault(require("./repositories/user.repository"));
 const user_router_1 = require("./routers/user.router");
 const user_service_1 = __importDefault(require("./services/user.service"));
-const user_migration_1 = __importDefault(require("./user.migration"));
+const user_migration_1 = __importDefault(require("./migrations/user.migration"));
 let UserModule = class UserModule {
 };
 UserModule = __decorate([
@@ -32,7 +34,8 @@ UserModule = __decorate([
             user_router_1.UserRouter,
             loggedInUser_middleware_1.LoggedInUserMiddleware,
             userSubscriber_middleware_1.AttachUserSubscriberMiddleware,
-            _1662297001052_user_migration_1.UserMigration1662297001052,
+            _1662297001052_user_migration_1.UserMigration1662297001059,
+            addUsername_migration_1.AddUsernameMigration1664964311259,
             //, UserValidator
             //UserSubscriber
         ]

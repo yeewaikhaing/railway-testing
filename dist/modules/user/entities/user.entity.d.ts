@@ -5,6 +5,7 @@ import { Role } from '../../role/role.entity';
 export declare class User extends MedusaUser {
     store_id: string;
     phone: string;
+    user_name: string;
     email_verified_at: Timestamp;
     phone_verified_at: Timestamp;
     store: Store;

@@ -1,8 +1,9 @@
 import { User as MedusaUser } from '@medusajs/medusa/dist';
-import { Column, Entity, Index, JoinColumn, ManyToOne,Timestamp } from 'typeorm';
+import { Column, Entity, Index, JoinColumn, ManyToOne,OneToOne,Timestamp } from 'typeorm';
 import { Entity as MedusaEntity } from 'medusa-extender';
 import { Store } from '../../store/entities/store.entity';
 import { Role } from '../../role/role.entity';
+import { Vendor } from '../../vendor/entities/vendor.entity';
 
 @MedusaEntity({ override: MedusaUser })
 @Entity()
@@ -13,8 +14,13 @@ export class User extends MedusaUser {
 
     @Column({nullable: true,  type: "varchar"})
     phone: string;
+
+    @Column({nullable: true,  type: "varchar"})
+    user_name: string;
+
     @Column({nullable: true,type: "time with time zone"})
     email_verified_at: Timestamp
+
     @Column({nullable: true,type: "time with time zone"})
     phone_verified_at: Timestamp
 
@@ -29,4 +35,9 @@ export class User extends MedusaUser {
     @ManyToOne(() => Role, (role) => role.users)
     @JoinColumn({ name: 'role_id' })
     teamRole: Role;
+
+    // @OneToOne(() => Vendor, (vendor: Vendor) => vendor.user)
+    // @JoinColumn({name: 'id', referencedColumnName: 'user_id'})
+    // vendor: Vendor;
+
 }

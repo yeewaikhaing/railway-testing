@@ -1,11 +1,11 @@
 import { Router } from 'medusa-extender';
 
-import loginCustomer from './handlers/login-customer';
-import getCustomer from './handlers/get-customer';
-import logoutCustomer from './handlers/logout-customer';
-import checkCustomerEmail from './handlers/check-customer-email';
-import checkCustomerPhone from './handlers/check-customer-phone';
-import checkCustomerUsername from './handlers/check-customer-username';
+import loginCustomer from './handlers/customer/login';
+import getCustomer from './handlers/customer/get-customer';
+import logoutCustomer from './handlers/customer/logout';
+import checkCustomerEmail from './handlers/customer/check-email';
+import checkCustomerPhone from './handlers/customer/check-phone';
+import checkCustomerUsername from './handlers/customer/check-username';
 
 import wrapHandler from '@medusajs/medusa/dist/api/middlewares/await-middleware';
 import middlewares from '@medusajs/medusa/dist/api/middlewares';
@@ -82,4 +82,4 @@ import middlewares from '@medusajs/medusa/dist/api/middlewares';
     }
 ] 
 })
-export class AuthRouter {}
+export class CustomerAuthRouter {}

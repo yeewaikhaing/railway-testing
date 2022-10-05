@@ -1,11 +1,12 @@
 import { Service } from 'medusa-extender';
 import { EntityManager } from 'typeorm';
 import EventBusService from '@medusajs/medusa/dist/services/event-bus';
-import { FindConfig } from '@medusajs/medusa/dist/types/common';
 import { UserService as MedusaUserService } from '@medusajs/medusa/dist/services';
 import { User } from '../entities/user.entity';
 import UserRepository from '../repositories/user.repository';
 import { MedusaError } from 'medusa-core-utils';
+import { FindConfig, Selector } from "@medusajs/medusa/dist/types/common";
+import {buildQuery} from "@medusajs/medusa/dist/utils";
 
 type ConstructorParams = {
     manager: EntityManager;
@@ -16,6 +17,7 @@ type ConstructorParams = {
 
 @Service({ scope: 'SCOPED', override: MedusaUserService })
 export default class UserService extends MedusaUserService {
+    static resolutionKey = 'userService';
     private readonly manager: EntityManager;
     private readonly userRepository: typeof UserRepository;
     private readonly eventBus: EventBusService;
@@ -73,4 +75,65 @@ export default class UserService extends MedusaUserService {
     
         return cloned
     }
+
+     /**
+   * Gets a user by email.
+   * @param {string} email - the email of the user to get.
+   * @param {Object} config - the config object containing query settings
+   * @return {Promise<User>} the user document.
+   */
+  async retrieveByEmail(
+    email: string,
+    config: FindConfig<User> = {}
+  ): Promise<User | never> {
+    return await this.customRetrieve({ email: email.toLowerCase() }, config)
+  }
+
+   /**
+   * Gets a user by phone.
+   * @param {string} phone - the phone of the user to get.
+   * @param {Object} config - the config object containing query settings
+   * @return {Promise<User>} the user document.
+   */
+    async retrieveByPhone(
+      phone: string,
+      config: FindConfig<User> = {}
+    ): Promise<User | never> {
+      return await this.customRetrieve({ phone: phone }, config)
+    }
+     /**
+   * Gets a user by username.
+   * @param {string} username - the username of the user to get.
+   * @param {Object} config - the config object containing query settings
+   * @return {Promise<User>} the user document.
+   */
+      async retrieveByUsername(
+        username: string,
+        config: FindConfig<User> = {}
+      ): Promise<User | never> {
+        return await this.customRetrieve({ user_name: username }, config)
+      }
+  private async customRetrieve(
+    selector: Selector<User>,
+    config: FindConfig<User> = {}
+  ): Promise<User | never> {
+    
+    const userRepo = this.manager.getCustomRepository(this.userRepository)
+
+    const query = buildQuery(selector, config)
+    const user = await userRepo.findOne(query)
+
+    if (!user) {
+      const selectorConstraints = Object.entries(selector)
+        .map((key, value) => `${key}: ${value}`)
+        .join(", ")
+      throw new MedusaError(
+        MedusaError.Types.NOT_FOUND,
+        `User with ${selectorConstraints} was not found`
+      )
+    }
+
+    return user;
+  }
+
 }

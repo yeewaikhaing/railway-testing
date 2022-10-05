@@ -13,6 +13,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const medusa_extender_1 = require("medusa-extender");
 const services_1 = require("@medusajs/medusa/dist/services");
 const medusa_core_utils_1 = require("medusa-core-utils");
+const utils_1 = require("@medusajs/medusa/dist/utils");
 let UserService = UserService_1 = class UserService extends services_1.UserService {
     constructor(container) {
         super(container);
@@ -56,7 +57,47 @@ let UserService = UserService_1 = class UserService extends services_1.UserServi
         cloned.transactionManager = transactionManager;
         return cloned;
     }
+    /**
+  * Gets a user by email.
+  * @param {string} email - the email of the user to get.
+  * @param {Object} config - the config object containing query settings
+  * @return {Promise<User>} the user document.
+  */
+    async retrieveByEmail(email, config = {}) {
+        return await this.customRetrieve({ email: email.toLowerCase() }, config);
+    }
+    /**
+    * Gets a user by phone.
+    * @param {string} phone - the phone of the user to get.
+    * @param {Object} config - the config object containing query settings
+    * @return {Promise<User>} the user document.
+    */
+    async retrieveByPhone(phone, config = {}) {
+        return await this.customRetrieve({ phone: phone }, config);
+    }
+    /**
+  * Gets a user by username.
+  * @param {string} username - the username of the user to get.
+  * @param {Object} config - the config object containing query settings
+  * @return {Promise<User>} the user document.
+  */
+    async retrieveByUsername(username, config = {}) {
+        return await this.customRetrieve({ user_name: username }, config);
+    }
+    async customRetrieve(selector, config = {}) {
+        const userRepo = this.manager.getCustomRepository(this.userRepository);
+        const query = (0, utils_1.buildQuery)(selector, config);
+        const user = await userRepo.findOne(query);
+        if (!user) {
+            const selectorConstraints = Object.entries(selector)
+                .map((key, value) => `${key}: ${value}`)
+                .join(", ");
+            throw new medusa_core_utils_1.MedusaError(medusa_core_utils_1.MedusaError.Types.NOT_FOUND, `User with ${selectorConstraints} was not found`);
+        }
+        return user;
+    }
 };
+UserService.resolutionKey = 'userService';
 UserService = UserService_1 = __decorate([
     (0, medusa_extender_1.Service)({ scope: 'SCOPED', override: services_1.UserService }),
     __metadata("design:paramtypes", [Object])

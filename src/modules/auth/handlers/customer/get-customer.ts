@@ -16,7 +16,7 @@
  *            customer:
  *              $ref: "#/components/schemas/customer"
  */
-import { CustomerService } from "../../customer/v1/services/customer.service"
+import { CustomerService } from "../../../customer/v1/services/customer.service"
 export default async (req, res) => {
   //console.log("req.user = ",req.user);
 
