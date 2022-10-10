@@ -3,11 +3,13 @@ import { EntityManager } from 'typeorm';
 import { default as MedusaAuthService} from '@medusajs/medusa/dist/services/auth';
 import {  CustomerService } from '../customer/v1/services/customer.service';
 //import { default as MedusaUserService} from '@medusajs/medusa/dist/services/user';
-import  UserService  from '../user/services/user.service';
+import  {UserService } from '../user/services/user.service';
 import { AuthenticateResult} from '@medusajs/medusa/dist/types/auth';
 import { Customer } from '../customer/v1/entities/customer.entity';
 import { User } from '../user/entities/user.entity';
- 
+import { TransactionBaseService } from '@medusajs/medusa';
+import Scrypt from "scrypt-kdf";
+
 type InjectedDependencies = {
     manager: EntityManager;
     customerService: CustomerService;
@@ -15,19 +17,23 @@ type InjectedDependencies = {
 };
 @Service({scope: 'SCOPED', override: MedusaAuthService})
 export class AuthService extends MedusaAuthService {
+  // @Service({scope: 'SCOPED'})
+  // export class AuthService extends TransactionBaseService {
     static resolutionKey = 'authService';
 
-    private readonly manager: EntityManager;
-    private readonly custService: CustomerService;
-    private readonly userService: UserService;
+    protected manager_: EntityManager
+    protected transactionManager_: EntityManager | undefined
+    protected readonly custService_: CustomerService;
+    protected readonly userService_: UserService;
 
     constructor({ manager, userService, customerService }: InjectedDependencies) {
         //super(container);
         
-        super({ manager, userService, customerService })
-        this.manager = manager;
-        this.custService = customerService;
-        this.userService = userService;
+       super({ manager, userService, customerService })
+      // super( manager )
+        this.manager_ = manager;
+        this.custService_ = customerService;
+        this.userService_ = userService;
     }
     /**
    * Authenticates a customer based on an email/phone, password combination. Uses
@@ -48,7 +54,7 @@ export class AuthService extends MedusaAuthService {
             // check login_info's value is phone?
             let isnum:boolean = /^\d+$/.test(login_info);
             if(! isnum) {// email
-                    var customerPasswordHash: Customer = await this.custService  
+                    var customerPasswordHash: Customer = await this.custService_  
                         .retrieveByEmail(login_info, {
                             select: ["password_hash"],
                         });  
@@ -59,14 +65,14 @@ export class AuthService extends MedusaAuthService {
                         )
                 
                         if (passwordsMatch) {
-                            var customer = await this.custService
+                            var customer = await this.custService_
                             .withTransaction(transactionManager)
                             .retrieveByEmail(login_info)
                         }
                     }
             }
             else {//phone
-                var customerPasswordHash: Customer = await this.custService  
+                var customerPasswordHash: Customer = await this.custService_  
                     .retrieveByPhone(login_info, {
                         select: ["password_hash"],
                     })   
@@ -77,7 +83,7 @@ export class AuthService extends MedusaAuthService {
                             );
                 
                         if (passwordsMatch) {
-                            var customer = await this.custService
+                            var customer = await this.custService_
                             .withTransaction(transactionManager)
                             .retrieveByPhone(login_info)
                         }
@@ -110,17 +116,17 @@ export class AuthService extends MedusaAuthService {
    *    error: a string with the error message
    */
     async authenticate(
-        login_info: string,
+        login_id: string,
         password: string
       ): Promise<AuthenticateResult> {
         return await this.atomicPhase_(async (transactionManager) => {
           try {
             // check login_info's value is phone?
-            let isnum:boolean = /^\d+$/.test(login_info);
+            let isnum:boolean = /^\d+$/.test(login_id);
             let user: any = '';
             if(! isnum) {// email
-                    var userPasswordHash: User = await this.userService  
-                        .retrieveByEmail(login_info, {
+                    var userPasswordHash: User = await this.userService_  
+                        .retrieveByEmail(login_id, {
                             select: ["password_hash"],
                         });  
                     if (userPasswordHash.password_hash) {
@@ -130,15 +136,15 @@ export class AuthService extends MedusaAuthService {
                         )
                 
                         if (passwordsMatch) {
-                             user = await this.userService
+                             user = await this.userService_
                             .withTransaction(transactionManager)
-                            .retrieveByEmail(login_info)
+                            .retrieveByEmail(login_id)
                         }
                     }
             }
             else {//phone
-                var userPasswordHash: User = await this.userService  
-                    .retrieveByPhone(login_info, {
+                var userPasswordHash: User = await this.userService_  
+                    .retrieveByPhone(login_id, {
                         select: ["password_hash"],
                     })   
                     if (userPasswordHash.password_hash) {
@@ -148,9 +154,9 @@ export class AuthService extends MedusaAuthService {
                             );
                 
                         if (passwordsMatch) {
-                            user = await this.custService
+                            user = await this.custService_
                             .withTransaction(transactionManager)
-                            .retrieveByPhone(login_info)
+                            .retrieveByPhone(login_id)
                         }
                     }
                 }  
@@ -170,4 +176,18 @@ export class AuthService extends MedusaAuthService {
           }
         })
       }
+      /**
+   * Verifies if a password is valid given the provided password hash
+   * @param {string} password - the raw password to check
+   * @param {string} hash - the hash to compare against
+   * @return {bool} the result of the comparison
+   */
+  protected async comparePassword_(
+    password: string,
+    hash: string
+  ): Promise<boolean> {
+    const buf = Buffer.from(hash, "base64")
+    return Scrypt.verify(buf, password)
+  }
+
 }

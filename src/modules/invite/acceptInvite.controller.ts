@@ -1,7 +1,7 @@
 import { AdminPostInvitesInviteAcceptReq } from "@medusajs/medusa"
 import { InviteService } from './invite.service';
 import { MedusaError } from 'medusa-core-utils';
-import UserService from '../user/services/user.service';
+import {UserService} from '../user/services/user.service';
 import { validator } from "@medusajs/medusa/dist/utils/validator"
 import { EntityManager } from "typeorm";
 
@@ -27,7 +27,7 @@ export default async (req, res) => {
     }
 
     const invite = await inviteService
-        .withTransaction(m)
+        
         .retrieve(decoded.invite_id);
 
     let store_id = invite ? invite.store_id : null;

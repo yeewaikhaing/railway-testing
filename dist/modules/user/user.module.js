@@ -11,6 +11,9 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.UserModule = void 0;
 const userSubscriber_middleware_1 = require("./middlewares/userSubscriber.middleware");
+const addCustomRole_migration_1 = require("./migrations/addCustomRole.migration");
+//import { AdminCreateUserRequest } from './handlers/create-user';
+const alterUseRole_migration_1 = require("./migrations/alterUseRole.migration");
 const addUsername_migration_1 = require("./migrations/addUsername.migration");
 //import {UserValidator}  from '../user/validators/user.validator';
 //import { UserSubscriber } from './subscribers/user.subscriber';
@@ -20,7 +23,7 @@ const medusa_extender_1 = require("medusa-extender");
 const user_entity_1 = require("./entities/user.entity");
 const user_repository_1 = __importDefault(require("./repositories/user.repository"));
 const user_router_1 = require("./routers/user.router");
-const user_service_1 = __importDefault(require("./services/user.service"));
+const user_service_1 = require("./services/user.service");
 const user_migration_1 = __importDefault(require("./migrations/user.migration"));
 let UserModule = class UserModule {
 };
@@ -28,7 +31,7 @@ UserModule = __decorate([
     (0, medusa_extender_1.Module)({
         imports: [
             user_entity_1.User,
-            user_service_1.default,
+            user_service_1.UserService,
             user_repository_1.default,
             user_migration_1.default,
             user_router_1.UserRouter,
@@ -36,8 +39,9 @@ UserModule = __decorate([
             userSubscriber_middleware_1.AttachUserSubscriberMiddleware,
             _1662297001052_user_migration_1.UserMigration1662297001059,
             addUsername_migration_1.AddUsernameMigration1664964311259,
-            //, UserValidator
-            //UserSubscriber
+            alterUseRole_migration_1.AlterUseRoleMigration1665272475853,
+            //AdminCreateUserRequest, 
+            addCustomRole_migration_1.AddCustomRoleMigration1665300684812
         ]
     })
 ], UserModule);

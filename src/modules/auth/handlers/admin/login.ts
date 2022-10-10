@@ -22,7 +22,7 @@ import { validator } from "@medusajs/medusa/dist/utils/validator";
 import { AuthService } from "../../auth.service";
 import { EntityManager } from "typeorm";
 import jwt from "jsonwebtoken";
-import  UserService  from "../../../user/services/user.service"; 
+//import  UserService  from "../../../user/services/user.service"; 
 import {  IsNotEmpty, IsString } from "class-validator";
 import _ from "lodash";
 
@@ -35,7 +35,7 @@ export default async (req, res) => {
     const result = await manager.transaction(async (transactionManager) => {
       return await authService
         .withTransaction(transactionManager)
-        .authenticate(validated.login_info,validated.password )
+        .authenticate(validated.login_id,validated.password )
         
     })
   
@@ -61,7 +61,7 @@ export default async (req, res) => {
   export class AdminPostAuthReq {
     @IsNotEmpty()
     @IsString()
-    login_info: string
+    login_id: string
   
     @IsNotEmpty()
     @IsString()

@@ -26,4 +26,6 @@ export class Store extends MedusaStore {
     @OneToMany(() => Role, (role) => role.store)
     @JoinColumn({ name: 'id', referencedColumnName: 'store_id' })
     roles: Role[];
+
+    
 }

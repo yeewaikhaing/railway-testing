@@ -1,4 +1,4 @@
-import UserService from "../user/services/user.service";
+import {UserService } from "../user/services/user.service";
 import _ from "lodash";
 
 export default (permissions: Record<string, unknown>[]) => {

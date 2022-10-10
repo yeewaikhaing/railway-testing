@@ -9,14 +9,34 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.User = void 0;
+exports.User = exports.CustomUserRoles = void 0;
 const dist_1 = require("@medusajs/medusa/dist");
 const typeorm_1 = require("typeorm");
 const medusa_extender_1 = require("medusa-extender");
 const store_entity_1 = require("../../store/entities/store.entity");
 const role_entity_1 = require("../../role/role.entity");
+const vendor_entity_1 = require("../../vendor/entities/vendor.entity");
+// import { generateEntityId } from '@medusajs/medusa/dist/utils';
+const db_aware_column_1 = require("@medusajs/medusa/dist/utils/db-aware-column");
+// import { BeforeInsert } from 'typeorm';
+var CustomUserRoles;
+(function (CustomUserRoles) {
+    CustomUserRoles["ADMIN"] = "admin";
+    CustomUserRoles["MEMBER"] = "member";
+    CustomUserRoles["DEVELOPER"] = "developer";
+    CustomUserRoles["VENDOR"] = "vendor";
+})(CustomUserRoles = exports.CustomUserRoles || (exports.CustomUserRoles = {}));
 let User = class User extends dist_1.User {
 };
+__decorate([
+    (0, db_aware_column_1.DbAwareColumn)({
+        type: "enum",
+        enum: CustomUserRoles,
+        nullable: true,
+        default: CustomUserRoles.MEMBER,
+    }),
+    __metadata("design:type", String)
+], User.prototype, "custom_role", void 0);
 __decorate([
     (0, typeorm_1.Index)(),
     (0, typeorm_1.Column)({ nullable: false }),
@@ -53,6 +73,10 @@ __decorate([
     (0, typeorm_1.JoinColumn)({ name: 'role_id' }),
     __metadata("design:type", role_entity_1.Role)
 ], User.prototype, "teamRole", void 0);
+__decorate([
+    (0, typeorm_1.OneToOne)(() => vendor_entity_1.Vendor, (vendor) => vendor.user),
+    __metadata("design:type", vendor_entity_1.Vendor)
+], User.prototype, "vendor", void 0);
 User = __decorate([
     (0, medusa_extender_1.Entity)({ override: dist_1.User }),
     (0, typeorm_1.Entity)()

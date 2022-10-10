@@ -1,13 +1,31 @@
-import { User as MedusaUser } from '@medusajs/medusa/dist';
+import { SoftDeletableEntity, User as MedusaUser } from '@medusajs/medusa/dist';
 import { Column, Entity, Index, JoinColumn, ManyToOne,OneToOne,Timestamp } from 'typeorm';
 import { Entity as MedusaEntity } from 'medusa-extender';
 import { Store } from '../../store/entities/store.entity';
 import { Role } from '../../role/role.entity';
 import { Vendor } from '../../vendor/entities/vendor.entity';
+// import { generateEntityId } from '@medusajs/medusa/dist/utils';
+import { DbAwareColumn } from '@medusajs/medusa/dist/utils/db-aware-column';
+// import { BeforeInsert } from 'typeorm';
 
-@MedusaEntity({ override: MedusaUser })
+export enum CustomUserRoles {
+    ADMIN = "admin",
+    MEMBER = "member",
+    DEVELOPER = "developer",
+    VENDOR = "vendor",
+  }
+@MedusaEntity({override: MedusaUser})
 @Entity()
 export class User extends MedusaUser {
+  
+  @DbAwareColumn({
+    type: "enum",
+    enum: CustomUserRoles,
+    nullable: true,
+    default: CustomUserRoles.MEMBER,
+  })
+  custom_role: CustomUserRoles
+
     @Index()
     @Column({ nullable: false })
     store_id: string;
@@ -36,8 +54,8 @@ export class User extends MedusaUser {
     @JoinColumn({ name: 'role_id' })
     teamRole: Role;
 
-    // @OneToOne(() => Vendor, (vendor: Vendor) => vendor.user)
-    // @JoinColumn({name: 'id', referencedColumnName: 'user_id'})
-    // vendor: Vendor;
+     @OneToOne(() => Vendor, (vendor: Vendor) => vendor.user)
+     vendor: Vendor;
 
+     
 }

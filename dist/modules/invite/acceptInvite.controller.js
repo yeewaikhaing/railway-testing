@@ -20,7 +20,6 @@ exports.default = async (req, res) => {
             throw new medusa_core_utils_1.MedusaError(medusa_core_utils_1.MedusaError.Types.INVALID_DATA, "Token is not valid");
         }
         const invite = await inviteService
-            .withTransaction(m)
             .retrieve(decoded.invite_id);
         let store_id = invite ? invite.store_id : null;
         const user = await inviteService

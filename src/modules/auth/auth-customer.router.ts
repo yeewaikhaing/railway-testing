@@ -17,7 +17,7 @@ import middlewares from '@medusajs/medusa/dist/api/middlewares';
          */
     {
         requiredAuth: true,
-        path: '/v1/store/auth',
+        path: '/store/v1/auth',
         method: 'post',
         handlers: [
            wrapHandler(loginCustomer)
@@ -28,7 +28,7 @@ import middlewares from '@medusajs/medusa/dist/api/middlewares';
          */
     {
         requiredAuth: true,
-        path: '/v1/store/auth',
+        path: '/store/v1/auth',
         method: 'get',
         handlers: [
            middlewares.authenticate(),
@@ -40,7 +40,7 @@ import middlewares from '@medusajs/medusa/dist/api/middlewares';
          */
     {
         requiredAuth: true,
-        path: '/v1/store/auth',
+        path: '/store/v1/auth',
         method: 'delete',
         handlers: [
            middlewares.authenticate(),
@@ -52,7 +52,7 @@ import middlewares from '@medusajs/medusa/dist/api/middlewares';
          */
     {
         requiredAuth: true,
-        path: '/v1/store/auth/email/:email',
+        path: '/store/v1/auth/email/:email',
         method: 'get',
         handlers: [
           wrapHandler(checkCustomerEmail)
@@ -63,7 +63,7 @@ import middlewares from '@medusajs/medusa/dist/api/middlewares';
          */
     {
         requiredAuth: true,
-        path: '/v1/store/auth/phone/:phone',
+        path: '/store/v1/auth/phone/:phone',
         method: 'get',
         handlers: [
           wrapHandler(checkCustomerPhone)
@@ -74,7 +74,7 @@ import middlewares from '@medusajs/medusa/dist/api/middlewares';
          */
     {
         requiredAuth: true,
-        path: '/v1/store/auth/username/:username',
+        path: '/store/v1/auth/username/:username',
         method: 'get',
         handlers: [
           wrapHandler(checkCustomerUsername)

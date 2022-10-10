@@ -12,6 +12,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.OrderService = void 0;
 const services_1 = require("@medusajs/medusa/dist/services");
 const medusa_extender_1 = require("medusa-extender");
+const utils_1 = require("@medusajs/medusa/dist/utils");
 let OrderService = class OrderService extends services_1.OrderService {
     constructor(container) {
         super(container);
@@ -29,7 +30,7 @@ let OrderService = class OrderService extends services_1.OrderService {
         config.select.push('store_id');
         config.relations = (_a = config.relations) !== null && _a !== void 0 ? _a : [];
         config.relations.push("children", "parent", "store");
-        return super.buildQuery_(selector, config);
+        return (0, utils_1.buildQuery)(selector, config);
     }
 };
 OrderService = __decorate([

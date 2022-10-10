@@ -23,7 +23,7 @@
  *              type: boolean
  *              description: Whether email exists or not.
  */
-import  UserService  from "../../../user/services/user.service"; 
+import  {UserService}  from "../../../user/services/user.service"; 
 
 export default async (req, res) => {
   const { email } = req.params

@@ -15,7 +15,7 @@ import resetPassword from '../handlers/reset-password';
          */
         {
             requiredAuth: true,
-            path: '/v1/store/customers',
+            path: '/store/v1/customers',
             method: 'post',
             handlers: [
                 wrapHandler(createCustomer)
@@ -26,7 +26,7 @@ import resetPassword from '../handlers/reset-password';
          */
         {
             requiredAuth: true,
-            path: '/v1/store/customers/me',
+            path: '/store/v1/customers/me',
             method: 'get',
             handlers: [
                 middlewares.authenticate(), // authentication is required
@@ -38,7 +38,7 @@ import resetPassword from '../handlers/reset-password';
          */
         {
             requiredAuth: true,
-            path: '/v1/store/customers/reset-password-token',
+            path: '/store/v1/customers/reset-password-token',
             method: 'post',
             handlers: [
                 wrapHandler(passwordResetToken)
@@ -49,7 +49,7 @@ import resetPassword from '../handlers/reset-password';
          */
         {
             requiredAuth: true,
-            path: '/v1/store/customers/reset-password',
+            path: '/store/v1/customers/reset-password',
             method: 'post',
             handlers: [
                 wrapHandler(resetPassword)

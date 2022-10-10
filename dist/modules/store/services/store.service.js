@@ -8,27 +8,33 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-var StoreService_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 const services_1 = require("@medusajs/medusa/dist/services");
 const medusa_extender_1 = require("medusa-extender");
-const user_entity_1 = require("../../user/entities/user.entity");
-const invite_entity_1 = require("../../invite/invite.entity");
-let StoreService = StoreService_1 = class StoreService extends services_1.StoreService {
+const utils_1 = require("@medusajs/medusa/dist/utils");
+const medusa_core_utils_1 = require("medusa-core-utils");
+let StoreService = class StoreService extends services_1.StoreService {
     constructor(container) {
         super(container);
         this.container = container;
         this.manager = container.manager;
         this.storeRepository = container.storeRepository;
     }
-    withTransaction(transactionManager) {
-        if (!transactionManager) {
-            return this;
+    /**
+    * Retrieve the store settings. There is always a maximum of one store.
+    * @param config The config object from which the query will be built
+    * @return the store
+    */
+    async retrieveById(store_id, config = {}) {
+        const storeRepo = this.manager.getCustomRepository(this.storeRepository);
+        const query = (0, utils_1.buildQuery)({ id: store_id }, config);
+        const store = await storeRepo.findOne(query);
+        if (!store) {
+            throw new medusa_core_utils_1.MedusaError(medusa_core_utils_1.MedusaError.Types.NOT_FOUND, "Store does not exist");
         }
-        const cloned = new StoreService_1(Object.assign(Object.assign({}, this.container), { manager: transactionManager }));
-        cloned.transactionManager_ = transactionManager;
-        return cloned;
+        return store;
     }
+    //@OnMedusaEntityEvent.Before.Insert(User, { async: true })
     async createStoreForNewUser(params) {
         const { event } = params;
         let store_id = Object.keys(this.container).includes("loggedInUser")
@@ -43,6 +49,7 @@ let StoreService = StoreService_1 = class StoreService extends services_1.StoreS
         event.entity.store_id = store_id;
         return event;
     }
+    //@OnMedusaEntityEvent.Before.Insert(Invite, { async: true })
     async addStoreToInvite(params) {
         const { event } = params; //invite to be created is in event.entity
         let store_id = this.container.loggedInUser.store_id;
@@ -59,9 +66,9 @@ let StoreService = StoreService_1 = class StoreService extends services_1.StoreS
         const store = storeRepo.create();
         return storeRepo.save(store);
     }
-    async retrieve(relations = []) {
+    async customRetrieve(relations = [], config = {}) {
         if (!Object.keys(this.container).includes('loggedInUser')) {
-            return super.retrieve(relations);
+            //return super.retrieve(config);
         }
         const storeRepo = this.manager.getCustomRepository(this.storeRepository);
         const store = await storeRepo.findOne({
@@ -77,19 +84,7 @@ let StoreService = StoreService_1 = class StoreService extends services_1.StoreS
         return store;
     }
 };
-__decorate([
-    medusa_extender_1.OnMedusaEntityEvent.Before.Insert(user_entity_1.User, { async: true }),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
-    __metadata("design:returntype", Promise)
-], StoreService.prototype, "createStoreForNewUser", null);
-__decorate([
-    medusa_extender_1.OnMedusaEntityEvent.Before.Insert(invite_entity_1.Invite, { async: true }),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
-    __metadata("design:returntype", Promise)
-], StoreService.prototype, "addStoreToInvite", null);
-StoreService = StoreService_1 = __decorate([
+StoreService = __decorate([
     (0, medusa_extender_1.Service)({ override: services_1.StoreService, scope: 'SCOPED' }),
     __metadata("design:paramtypes", [Object])
 ], StoreService);

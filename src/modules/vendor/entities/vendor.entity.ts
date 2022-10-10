@@ -13,6 +13,7 @@ import {
 import { Entity as MedusaEntity } from "medusa-extender";
 import { SoftDeletableEntity } from "@medusajs/medusa/dist/interfaces/models/soft-deletable-entity";
 import { User } from "../../user/entities/user.entity";
+import { VendorPayment } from "./vendorPayment.entity";
 
 @MedusaEntity()
 @Entity()
@@ -33,8 +34,13 @@ export class Vendor extends SoftDeletableEntity{
     @Column()
     user_id: string;
 
-    // @OneToOne(() => User, (user: User) => user.vendor)
-    // @JoinColumn({ name: 'user_id'})
-    // user: User;
+    @OneToOne(() => User, (user: User) => user.vendor)
+    @JoinColumn({ name: 'user_id'})
+    user: User;
+
+   
+    @OneToMany(() => VendorPayment, (payment: VendorPayment) => payment.vendor)
+    @JoinColumn({name: "id", referencedColumnName: "vendor_id"})
+    payments: VendorPayment[];
     
 }

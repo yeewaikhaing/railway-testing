@@ -7,6 +7,9 @@ import { User } from '../../user/entities/user.entity';
 import EventBusService from '@medusajs/medusa/dist/services/event-bus';
 import StoreRepository from '../repositories/store.repository';
 import { Invite } from '../../invite/invite.entity';
+import { FindConfig, Selector } from "@medusajs/medusa/dist/types/common";
+import {buildQuery} from "@medusajs/medusa/dist/utils";
+import { MedusaError } from 'medusa-core-utils';
 
 interface ConstructorParams {
     loggedInUser?: User;
@@ -27,22 +30,27 @@ export default class StoreService extends MedusaStoreService {
         this.storeRepository = container.storeRepository;
     }
 
-    withTransaction(transactionManager: EntityManager): StoreService {
-        if (!transactionManager) {
-            return this;
-        }
+   /**
+   * Retrieve the store settings. There is always a maximum of one store.
+   * @param config The config object from which the query will be built
+   * @return the store
+   */
+  async retrieveById(store_id: string,config: FindConfig<Store> = {}): Promise<Store> {
 
-        const cloned = new StoreService({
-            ...this.container,
-            manager: transactionManager,
-        });
+    const storeRepo = this.manager.getCustomRepository(this.storeRepository)
+    const query = buildQuery({ id: store_id }, config)
+    
+    const store = await storeRepo.findOne(query)
 
-        cloned.transactionManager_ = transactionManager;
-
-        return cloned;
+    if (!store) {
+      throw new MedusaError(MedusaError.Types.NOT_FOUND, "Store does not exist")
     }
 
-    @OnMedusaEntityEvent.Before.Insert(User, { async: true })
+    return store
+  }
+
+
+    //@OnMedusaEntityEvent.Before.Insert(User, { async: true })
     public async createStoreForNewUser(
         params: MedusaEventHandlerParams<User, 'Insert'>
     ): Promise<EntityEventType<User, 'Insert'>> {
@@ -61,7 +69,7 @@ export default class StoreService extends MedusaStoreService {
 
         return event;
     }
-    @OnMedusaEntityEvent.Before.Insert(Invite, { async: true })
+    //@OnMedusaEntityEvent.Before.Insert(Invite, { async: true })
     public async addStoreToInvite(
         params: MedusaEventHandlerParams<Invite, 'Insert'>
     ): Promise<EntityEventType<Invite, 'Insert'>> {
@@ -84,9 +92,9 @@ export default class StoreService extends MedusaStoreService {
         return storeRepo.save(store);
     }
 
-    public async retrieve(relations: string[] = []) {
+    public async customRetrieve(relations: string[] = [], config: FindConfig<Store> = {}) {
         if (!Object.keys(this.container).includes('loggedInUser')) {
-            return super.retrieve(relations);
+            //return super.retrieve(config);
         }
 
         const storeRepo = this.manager.getCustomRepository(this.storeRepository);

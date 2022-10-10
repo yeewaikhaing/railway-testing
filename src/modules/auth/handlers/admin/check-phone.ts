@@ -15,7 +15,7 @@
  *            exists:
  *              type: boolean
  */
- import  UserService  from "../../../user/services/user.service"; 
+ import  {UserService}  from "../../../user/services/user.service"; 
 
 export default async (req, res) => {
   const { phone } = req.params

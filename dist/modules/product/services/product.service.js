@@ -23,9 +23,9 @@ const product_entity_1 = require("../entities/product.entity");
 let ProductService = class ProductService extends services_1.ProductService {
     constructor(container) {
         super(container);
-        this.container = container;
         _ProductService_manager.set(this, void 0);
         __classPrivateFieldSet(this, _ProductService_manager, container.manager, "f");
+        this.container = container;
     }
     async attachStoreToProduct(params) {
         const { event } = params;
@@ -33,7 +33,7 @@ let ProductService = class ProductService extends services_1.ProductService {
         event.entity.store_id = loggedInUser.store_id;
         return event;
     }
-    prepareListQuery_(selector, config) {
+    myPrepareListQuery_(selector, config) {
         const loggedInUser = Object.keys(this.container).includes('loggedInUser') ? this.container.loggedInUser : null;
         if (loggedInUser) {
             selector['store_id'] = loggedInUser.store_id;
@@ -53,40 +53,4 @@ ProductService = __decorate([
     __metadata("design:paramtypes", [Object])
 ], ProductService);
 exports.ProductService = ProductService;
-// import { EntityEventType, MedusaEventHandlerParams, OnMedusaEntityEvent, Service } from 'medusa-extender';
-// import { EntityManager } from "typeorm";
-// import { ProductService as MedusaProductService } from '@medusajs/medusa/dist/services';
-// import { Product } from '../entities/product.entity';
-// import { User } from '../../user/entities/user.entity';
-// import UserService from '../../user/services/user.service';
-// type ConstructorParams = {
-//     manager: any;
-//     loggedInUser: User;
-//     productRepository: any;
-//     productVariantRepository: any;
-//     productOptionRepository: any;
-//     eventBusService: any;
-//     productVariantService: any;
-//     productCollectionService: any;
-//     productTypeRepository: any;
-//     productTagRepository: any;
-//     imageRepository: any;
-//     searchService: any;
-//     userService: UserService;
-// }
-// @Service({ scope: 'SCOPED', override: MedusaProductService })
-// export class ProductService extends MedusaProductService {
-//     readonly #manager: EntityManager;
-//     constructor(private readonly container: ConstructorParams) {
-//         super(container);
-//         this.#manager = container.manager;
-//     }
-//     prepareListQuery_(selector: object, config: object): object {
-//         const loggedInUser = this.container.loggedInUser
-//         if (loggedInUser) {
-//             selector['store_id'] = loggedInUser.store_id
-//         }
-//         return super.prepareListQuery_(selector, config);
-//     }
-// }
 //# sourceMappingURL=product.service.js.map

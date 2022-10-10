@@ -10,7 +10,6 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.OrderSubscriber = void 0;
-const services_1 = require("@medusajs/medusa/dist/services");
 const medusa_1 = require("@medusajs/medusa");
 const medusa_extender_1 = require("medusa-extender");
 let OrderSubscriber = class OrderSubscriber {
@@ -22,42 +21,54 @@ let OrderSubscriber = class OrderSubscriber {
         this.manager = manager;
         this.lineItemRepository = lineItemRepository;
         this.shippingMethodRepository = shippingMethodRepository;
-        this.eventBusService.subscribe(services_1.OrderService.Events.PLACED, this.handleOrderPlaced.bind(this));
-        //add handler for different status changes
-        this.eventBusService.subscribe(services_1.OrderService.Events.CANCELED, this.checkStatus.bind(this));
-        this.eventBusService.subscribe(services_1.OrderService.Events.UPDATED, this.checkStatus.bind(this));
-        this.eventBusService.subscribe(services_1.OrderService.Events.COMPLETED, this.checkStatus.bind(this));
+        // this.eventBusService.subscribe(
+        //   OrderService.Events.PLACED,
+        //   this.handleOrderPlaced.bind(this)
+        // );
+        // //add handler for different status changes
+        // this.eventBusService.subscribe(
+        //     OrderService.Events.CANCELED,
+        //     this.checkStatus.bind(this)
+        // );
+        // this.eventBusService.subscribe(
+        //     OrderService.Events.UPDATED,
+        //     this.checkStatus.bind(this)
+        // );
+        // this.eventBusService.subscribe(
+        //     OrderService.Events.COMPLETED,
+        //     this.checkStatus.bind(this)
+        // );
     }
-    async checkStatus({ id }) {
-        //retrieve order
-        const order = await this.orderService.retrieve(id);
-        if (order.order_parent_id) {
-            //retrieve parent
-            const orderRepo = this.manager.getCustomRepository(this.orderRepository);
-            const parentOrder = await this.orderService.retrieve(order.order_parent_id, {
-                relations: ['children']
-            });
-            const newStatus = this.getStatusFromChildren(parentOrder);
-            if (newStatus !== parentOrder.status) {
-                switch (newStatus) {
-                    case medusa_1.OrderStatus.CANCELED:
-                        this.orderService.cancel(parentOrder.id);
-                        break;
-                    case medusa_1.OrderStatus.ARCHIVED:
-                        this.orderService.archive(parentOrder.id);
-                        break;
-                    case medusa_1.OrderStatus.COMPLETED:
-                        this.orderService.completeOrder(parentOrder.id);
-                        break;
-                    default:
-                        parentOrder.status = newStatus;
-                        parentOrder.fulfillment_status = newStatus;
-                        parentOrder.payment_status = newStatus;
-                        await orderRepo.save(parentOrder);
-                }
-            }
-        }
-    }
+    // public async checkStatus({ id }: {id: string}): Promise<void> {
+    //     //retrieve order
+    //     const order: Order = await this.orderService.retrieve(id);
+    //     if (order.order_parent_id) {
+    //       //retrieve parent
+    //       const orderRepo = this.manager.getCustomRepository(this.orderRepository);
+    //       const parentOrder = await this.orderService.retrieve(order.order_parent_id, {
+    //           relations: ['children']
+    //       });
+    //       const newStatus = this.getStatusFromChildren(parentOrder);
+    //       if (newStatus !== parentOrder.status) {
+    //           switch (newStatus) {
+    //             case OrderStatus.CANCELED:
+    //               this.orderService.cancel(parentOrder.id);
+    //               break;
+    //             case OrderStatus.ARCHIVED:
+    //               this.orderService.archive(parentOrder.id);
+    //               break;
+    //             case OrderStatus.COMPLETED:
+    //               this.orderService.completeOrder(parentOrder.id);
+    //               break;
+    //             default:
+    //               parentOrder.status = newStatus;
+    //               parentOrder.fulfillment_status = newStatus;
+    //               parentOrder.payment_status = newStatus;
+    //               await orderRepo.save(parentOrder);
+    //           }
+    //       }
+    //     }
+    //   }
     getStatusFromChildren(order) {
         if (!order.children) {
             return order.status;
@@ -86,45 +97,6 @@ let OrderSubscriber = class OrderSubscriber {
         //since more than one status is left and we filtered out canceled, archived,
         //and requires action statuses, only pending and complete left. So, return pending
         return medusa_1.OrderStatus.PENDING;
-    }
-    async handleOrderPlaced({ id }) {
-        //create child orders
-        //retrieve order
-        const order = await this.orderService.retrieve(id, {
-            relations: ['items', 'items.variant', 'cart', 'shipping_methods', 'payments']
-        });
-        //group items by store id
-        const groupedItems = {};
-        for (const item of order.items) {
-            const product = await this.productService.retrieve(item.variant.product_id, { select: ['store_id'] });
-            const store_id = product.store_id;
-            if (!store_id) {
-                continue;
-            }
-            if (!groupedItems.hasOwnProperty(store_id)) {
-                groupedItems[store_id] = [];
-            }
-            groupedItems[store_id].push(item);
-        }
-        const orderRepo = this.manager.getCustomRepository(this.orderRepository);
-        const lineItemRepo = this.manager.getCustomRepository(this.lineItemRepository);
-        const shippingMethodRepo = this.manager.getCustomRepository(this.shippingMethodRepository);
-        for (const store_id in groupedItems) {
-            //create order
-            const childOrder = orderRepo.create(Object.assign(Object.assign({}, order), { order_parent_id: id, store_id: store_id, cart_id: null, cart: null, id: null, shipping_methods: [] }));
-            const orderResult = await orderRepo.save(childOrder);
-            //create shipping methods
-            for (const shippingMethod of order.shipping_methods) {
-                const newShippingMethod = shippingMethodRepo.create(Object.assign(Object.assign({}, shippingMethod), { id: null, cart_id: null, cart: null, order_id: orderResult.id }));
-                await shippingMethodRepo.save(newShippingMethod);
-            }
-            //create line items
-            const items = groupedItems[store_id];
-            for (const item of items) {
-                const newItem = lineItemRepo.create(Object.assign(Object.assign({}, item), { id: null, order_id: orderResult.id, cart_id: null }));
-                await lineItemRepo.save(newItem);
-            }
-        }
     }
 };
 OrderSubscriber = __decorate([

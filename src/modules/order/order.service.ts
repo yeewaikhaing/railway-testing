@@ -3,6 +3,7 @@ import { OrderService as MedusaOrderService } from "@medusajs/medusa/dist/servic
 import { OrderRepository } from './order.repository';
 import { Service } from 'medusa-extender';
 import { User } from "../user/entities/user.entity";
+import {buildQuery} from "@medusajs/medusa/dist/utils";
 
 type InjectedDependencies = {
     manager: EntityManager;
@@ -53,6 +54,6 @@ export class OrderService extends MedusaOrderService {
 
         config.relations.push("children", "parent", "store")
 
-        return super.buildQuery_(selector, config);
+        return buildQuery(selector, config);
     }
 }

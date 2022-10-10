@@ -11,41 +11,44 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
-var InviteService_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.InviteService = void 0;
 const invite_1 = __importDefault(require("@medusajs/medusa/dist/services/invite"));
 const medusa_extender_1 = require("medusa-extender");
-let InviteService = InviteService_1 = class InviteService extends invite_1.default {
+let InviteService = class InviteService extends invite_1.default {
     constructor(container, configModule) {
         super(container, configModule);
         this.manager = container.manager;
         this.container = container;
         this.inviteRepository = container.inviteRepository;
     }
-    withTransaction(transactionManager) {
-        if (!transactionManager) {
-            return this;
-        }
-        const cloned = new InviteService_1(Object.assign(Object.assign({}, this.container), { manager: transactionManager }), this.configModule_);
-        cloned.transactionManager = transactionManager;
-        return cloned;
-    }
-    buildQuery_(selector, config = {}) {
+    customBuildQuery(selector, config = {}) {
         if (Object.keys(this.container).includes('loggedInUser') && this.container.loggedInUser.store_id) {
             selector['store_id'] = this.container.loggedInUser.store_id;
         }
         return super.buildQuery_(selector, config);
     }
+    // buildQuery_(selector, config = {}): object {
+    //   if (Object.keys(this.container).includes('loggedInUser') && this.container.loggedInUser.store_id) {
+    //       selector['store_id'] = this.container.loggedInUser.store_id;
+    //   }
+    //   return super.buildQuery_(selector, config);
+    // }
     async retrieve(invite_id) {
-        return await this.atomicPhase_(async (m) => {
-            const inviteRepo = m.getCustomRepository(this.inviteRepository);
-            return await inviteRepo.findOne({ where: { id: invite_id } });
-        });
+        const query = this.customBuildQuery(invite_id);
+        const invite = await this.inviteRepository.findOne(query);
+        //return await inviteRepo.findOne({ where: { id: invite_id } })
+        return invite;
+        //   return await this.atomicPhase_(async (m) => {
+        //   const inviteRepo: InviteRepository = m.getCustomRepository(
+        //     this.inviteRepository
+        //   )
+        //   return await inviteRepo.findOne({ where: { id: invite_id } })
+        // })
     }
 };
 InviteService.resolutionKey = "inviteService";
-InviteService = InviteService_1 = __decorate([
+InviteService = __decorate([
     (0, medusa_extender_1.Service)({ scope: 'SCOPED', override: invite_1.default }),
     __metadata("design:paramtypes", [Object, Object])
 ], InviteService);

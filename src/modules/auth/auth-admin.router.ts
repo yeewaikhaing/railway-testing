@@ -17,7 +17,7 @@ import middlewares from '@medusajs/medusa/dist/api/middlewares';
          */
         {
             requiredAuth: true,
-            path: '/v1/admin/auth/email/:email',
+            path: '/admin/v1/auth/email/:email',
             method: 'get',
             handlers: [
             wrapHandler(checkEmail)
@@ -28,7 +28,7 @@ import middlewares from '@medusajs/medusa/dist/api/middlewares';
          */
         {
             requiredAuth: true,
-            path: '/v1/admin/auth/phone/:phone',
+            path: '/admin/v1/auth/phone/:phone',
             method: 'get',
             handlers: [
             wrapHandler(checkPhone)
@@ -39,7 +39,7 @@ import middlewares from '@medusajs/medusa/dist/api/middlewares';
          */
         {
             requiredAuth: true,
-            path: '/v1/admin/auth/username/:username',
+            path: '/admin/v1/auth/username/:username',
             method: 'get',
             handlers: [
             wrapHandler(checkUsername)
@@ -50,7 +50,7 @@ import middlewares from '@medusajs/medusa/dist/api/middlewares';
          */
         {
             requiredAuth: true,
-            path: '/v1/admin/auth',
+            path: '/admin/v1/auth',
             method: 'delete',
             handlers: [
             middlewares.authenticate(),
@@ -61,11 +61,11 @@ import middlewares from '@medusajs/medusa/dist/api/middlewares';
          * Login
          */
         {
-            requiredAuth: true,
-            path: '/v1/admin/auth',
+            requiredAuth: false,
+            path: '/admin/v1/auth',
             method: 'post',
             handlers: [
-            wrapHandler(login)
+                wrapHandler(login)
             ]
         },
             /**
@@ -73,7 +73,7 @@ import middlewares from '@medusajs/medusa/dist/api/middlewares';
              */
         {
             requiredAuth: true,
-            path: '/v1/store/auth',
+            path: '/store/v1/auth',
             method: 'get',
             handlers: [
             middlewares.authenticate(),

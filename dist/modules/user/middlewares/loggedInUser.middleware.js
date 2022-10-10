@@ -20,11 +20,20 @@ let LoggedInUserMiddleware = class LoggedInUserMiddleware {
                 resolve: () => loggedInUser,
             },
         });
+        // console.log("loggedInUser in middle ", loggedInUser);
         next();
     }
 };
 LoggedInUserMiddleware = __decorate([
-    (0, medusa_extender_1.Middleware)({ requireAuth: true, routes: [{ method: "all", path: '/admin/*' }] })
+    (0, medusa_extender_1.Middleware)({
+        requireAuth: true,
+        routes: [
+            {
+                method: "all",
+                path: '/admin/*'
+            }
+        ]
+    })
 ], LoggedInUserMiddleware);
 exports.LoggedInUserMiddleware = LoggedInUserMiddleware;
 //# sourceMappingURL=loggedInUser.middleware.js.map

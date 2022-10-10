@@ -16,15 +16,15 @@
  *            exists:
  *              type: boolean
  */
- import  UserService  from "../../../user/services/user.service"; 
+ import  {UserService}  from "../../../user/services/user.service"; 
 
 export default async (req, res) => {
-  const { username } = req.params
+  const { user_name } = req.params
 
   try {
     const userService: UserService = req.scope.resolve(UserService.resolutionKey);
     
-    const user = await userService.retrieveByUsername(username);
+    const user = await userService.retrieveByUsername(user_name);
 
     res.status(200).json({ exists: true})
   } catch (err) {

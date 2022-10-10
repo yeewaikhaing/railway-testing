@@ -7,7 +7,7 @@ import { default as MedusaInviteService } from "@medusajs/medusa/dist/services/i
 import { Service } from "medusa-extender";
 import { User } from '../user/entities/user.entity';
 import UserRepository from '../user/repositories/user.repository';
-import UserService from '../user/services/user.service';
+import {UserService} from '../user/services/user.service';
 
 type InviteServiceProps = {
   manager: EntityManager;
@@ -34,39 +34,37 @@ export class InviteService extends MedusaInviteService {
     this.inviteRepository = container.inviteRepository
   }
 
-    withTransaction(transactionManager: EntityManager): InviteService {
-    if (!transactionManager) {
-      return this
-    }
-
-    const cloned = new InviteService({
-      ...this.container,
-      manager: transactionManager
-    },
-    this.configModule_
-    )
-
-    cloned.transactionManager = transactionManager
-
-    return cloned
-  }
-
-  buildQuery_(selector, config = {}): object {
+  customBuildQuery(selector, config = {}): object {
     if (Object.keys(this.container).includes('loggedInUser') && this.container.loggedInUser.store_id) {
         selector['store_id'] = this.container.loggedInUser.store_id;
     }
 
     return super.buildQuery_(selector, config);
   }
+
+  // buildQuery_(selector, config = {}): object {
+  //   if (Object.keys(this.container).includes('loggedInUser') && this.container.loggedInUser.store_id) {
+  //       selector['store_id'] = this.container.loggedInUser.store_id;
+  //   }
+
+  //   return super.buildQuery_(selector, config);
+  // }
   
-  async retrieve (invite_id: string) : Promise<Invite|null> {
-    return await this.atomicPhase_(async (m) => {
-    const inviteRepo: InviteRepository = m.getCustomRepository(
-      this.inviteRepository
-    )
+  async retrieve(invite_id: string) : Promise<Invite|null> {
+    
+    const query = this.customBuildQuery(invite_id);
+      const invite = await this.inviteRepository.findOne(query);
+      //return await inviteRepo.findOne({ where: { id: invite_id } })
+      return invite;
+      
+    
+  //   return await this.atomicPhase_(async (m) => {
+  //   const inviteRepo: InviteRepository = m.getCustomRepository(
+  //     this.inviteRepository
+  //   )
 
-    return await inviteRepo.findOne({ where: { id: invite_id } })
+  //   return await inviteRepo.findOne({ where: { id: invite_id } })
 
-  })
+  // })
 }
 }

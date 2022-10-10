@@ -25,10 +25,6 @@ export declare class OrderSubscriber {
     private readonly lineItemRepository;
     private readonly shippingMethodRepository;
     constructor({ eventBusService, orderService, orderRepository, productService, manager, lineItemRepository, shippingMethodRepository, paymentRepository }: InjectedDependencies);
-    checkStatus({ id }: {
-        id: string;
-    }): Promise<void>;
     getStatusFromChildren(order: Order): string;
-    private handleOrderPlaced;
 }
 export {};

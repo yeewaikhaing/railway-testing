@@ -6,7 +6,7 @@ import { InviteRepository } from './invite.repository';
 import { default as MedusaInviteService } from "@medusajs/medusa/dist/services/invite";
 import { User } from '../user/entities/user.entity';
 import UserRepository from '../user/repositories/user.repository';
-import UserService from '../user/services/user.service';
+import { UserService } from '../user/services/user.service';
 declare type InviteServiceProps = {
     manager: EntityManager;
     userService: UserService;
@@ -21,8 +21,7 @@ export declare class InviteService extends MedusaInviteService {
     private readonly container;
     private readonly inviteRepository;
     constructor(container: InviteServiceProps, configModule: ConfigModule);
-    withTransaction(transactionManager: EntityManager): InviteService;
-    buildQuery_(selector: any, config?: {}): object;
+    customBuildQuery(selector: any, config?: {}): object;
     retrieve(invite_id: string): Promise<Invite | null>;
 }
 export {};

@@ -2,7 +2,8 @@ import { EntityEventType, MedusaEventHandlerParams } from 'medusa-extender';
 import { ProductService as MedusaProductService } from '@medusajs/medusa/dist/services';
 import { Product } from '../entities/product.entity';
 import { User } from '../../user/entities/user.entity';
-import UserService from '../../user/services/user.service';
+import { UserService } from '../../user/services/user.service';
+import { FlagRouter } from '@medusajs/medusa/dist/utils/flag-router';
 declare type ConstructorParams = {
     manager: any;
     loggedInUser?: User;
@@ -19,12 +20,13 @@ declare type ConstructorParams = {
     userService: UserService;
     cartRepository: any;
     priceSelectionStrategy: any;
+    featureFlagRouter: FlagRouter;
 };
 export declare class ProductService extends MedusaProductService {
     #private;
     private readonly container;
     constructor(container: ConstructorParams);
     attachStoreToProduct(params: MedusaEventHandlerParams<Product, 'Insert'>): Promise<EntityEventType<Product, 'Insert'>>;
-    prepareListQuery_(selector: object, config: object): object;
+    myPrepareListQuery_(selector: object, config: object): object;
 }
 export {};
