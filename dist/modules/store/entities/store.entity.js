@@ -9,7 +9,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Store = void 0;
+exports.Store = exports.SellerTypes = exports.StoreTypes = void 0;
 const dist_1 = require("@medusajs/medusa/dist");
 const typeorm_1 = require("typeorm");
 const medusa_extender_1 = require("medusa-extender");
@@ -18,8 +18,47 @@ const product_entity_1 = require("../../product/entities/product.entity");
 const order_entity_1 = require("../../order/order.entity");
 const invite_entity_1 = require("./../../invite/invite.entity");
 const role_entity_1 = require("../../role/role.entity");
+var StoreTypes;
+(function (StoreTypes) {
+    StoreTypes["ONLINE"] = "online";
+    StoreTypes["OFFICIAL_STORE"] = "offical store";
+    StoreTypes["AUTHORIZED"] = "authorized";
+})(StoreTypes = exports.StoreTypes || (exports.StoreTypes = {}));
+var SellerTypes;
+(function (SellerTypes) {
+    SellerTypes["WHOLESALE"] = "wholesale";
+    SellerTypes["RETAIL"] = "retail";
+})(SellerTypes = exports.SellerTypes || (exports.SellerTypes = {}));
 let Store = class Store extends dist_1.Store {
 };
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], Store.prototype, "store_logo", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: "character varying", nullable: false, default: StoreTypes.ONLINE }),
+    __metadata("design:type", String)
+], Store.prototype, "store_type", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: "character varying", nullable: false }),
+    __metadata("design:type", String)
+], Store.prototype, "seller_type", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: false }),
+    __metadata("design:type", String)
+], Store.prototype, "state_division", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: false }),
+    __metadata("design:type", String)
+], Store.prototype, "city", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: false }),
+    __metadata("design:type", String)
+], Store.prototype, "township", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: false, type: 'text' }),
+    __metadata("design:type", String)
+], Store.prototype, "address", void 0);
 __decorate([
     (0, typeorm_1.OneToMany)(() => user_entity_1.User, (user) => user.store),
     (0, typeorm_1.JoinColumn)({ name: 'id', referencedColumnName: 'store_id' }),

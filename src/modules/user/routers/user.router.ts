@@ -3,7 +3,7 @@ import createUserHandler from '@medusajs/medusa/dist/api/routes/admin/users/crea
 import wrapHandler from '@medusajs/medusa/dist/api/middlewares/await-middleware';
 import createUser from '../handlers/create-user';
 import getUser from '../handlers/get-user';
-import listUser, { AdminGetUsersParams } from '../handlers/list-user';
+import listUser,{ AdminGetUsersParams } from '../handlers/list-user';
 import { User } from '../entities/user.entity';
 import  updateUser, { AdminUpdateUserRequest }  from '../handlers/update-user';
 import middlewares, {
@@ -13,6 +13,7 @@ import middlewares, {
 import { EmptyQueryParams } from '@medusajs/medusa/dist/types/common';
 import deleteUser from '../handlers/delete-user';
 
+//select properties
   export const defaultAdminUsersFields: (keyof User)[] = [
     "id",
     "email",
@@ -34,7 +35,7 @@ import deleteUser from '../handlers/delete-user';
 
   export const defaultAdminUsersRelations = [
     "store",
-    //"vendor"
+    "vendor"
   ]
 
 @Router({

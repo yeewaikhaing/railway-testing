@@ -57,10 +57,11 @@ let UserRepository = class UserRepository extends medusa_extender_1.Utils.reposi
     async getFreeTextSearchResultsAndCount(q, options = {
         where: {},
     }) {
-        var _a;
         const options_ = Object.assign({}, options);
-        (_a = options_ === null || options_ === void 0 ? void 0 : options_.where) === null || _a === void 0 ? true : delete _a.email;
+        console.log("options - ", options_);
+        //delete options_?.where?.id
         let qb = this.createQueryBuilder("user")
+            .leftJoinAndSelect("user.store", "store")
             .select()
             .where(options_.where)
             .andWhere(new typeorm_1.Brackets((qb) => {

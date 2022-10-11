@@ -10,6 +10,7 @@ import { Invite } from '../../invite/invite.entity';
 import { FindConfig, Selector } from "@medusajs/medusa/dist/types/common";
 import {buildQuery} from "@medusajs/medusa/dist/utils";
 import { MedusaError } from 'medusa-core-utils';
+import { CreateStoreInput } from '../types/store';
 
 interface ConstructorParams {
     loggedInUser?: User;
@@ -21,6 +22,8 @@ interface ConstructorParams {
 
 @Service({ override: MedusaStoreService, scope: 'SCOPED' })
 export default class StoreService extends MedusaStoreService {
+    static resolutionKey = 'storeService';
+
     private readonly manager: EntityManager;
     private readonly storeRepository: typeof StoreRepository;
 
@@ -29,7 +32,36 @@ export default class StoreService extends MedusaStoreService {
         this.manager = container.manager;
         this.storeRepository = container.storeRepository;
     }
+    /**
+   * Creates a store if it doesn't already exist.
+   * @return The store.
+   */
+  async createStore(storeObject: CreateStoreInput): Promise<Store> {
+    return await this.atomicPhase_(
+      async (transactionManager: EntityManager) => {
+        const storeRepository = transactionManager.getCustomRepository(
+          this.storeRepository
+        )
+        const currencyRepository = transactionManager.getCustomRepository(
+          this.currencyRepository_
+        )
 
+        let newStore = storeRepository.create(storeObject);
+        
+        // Add default currency (USD) to store currencies
+        const usd = await currencyRepository.findOne({
+          code: "usd",
+        })
+
+        if (usd) {
+          newStore.currencies = [usd]
+        }
+
+        newStore = await storeRepository.save(newStore)
+        return newStore;
+      }
+    )
+  }
    /**
    * Retrieve the store settings. There is always a maximum of one store.
    * @param config The config object from which the query will be built

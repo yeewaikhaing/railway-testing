@@ -8,6 +8,7 @@ import EventBusService from '@medusajs/medusa/dist/services/event-bus';
 import StoreRepository from '../repositories/store.repository';
 import { Invite } from '../../invite/invite.entity';
 import { FindConfig } from "@medusajs/medusa/dist/types/common";
+import { CreateStoreInput } from '../types/store';
 interface ConstructorParams {
     loggedInUser?: User;
     manager: EntityManager;
@@ -17,9 +18,15 @@ interface ConstructorParams {
 }
 export default class StoreService extends MedusaStoreService {
     private readonly container;
+    static resolutionKey: string;
     private readonly manager;
     private readonly storeRepository;
     constructor(container: ConstructorParams);
+    /**
+   * Creates a store if it doesn't already exist.
+   * @return The store.
+   */
+    createStore(storeObject: CreateStoreInput): Promise<Store>;
     /**
     * Retrieve the store settings. There is always a maximum of one store.
     * @param config The config object from which the query will be built

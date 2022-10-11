@@ -159,12 +159,11 @@ let UserService = UserService_1 = class UserService extends services_1.UserServi
                 user.store_id = loggedInUser.store_id;
             }
             const created = userRepo.create(user);
-            // const newUser = await userRepo.save(created)
-            // await this.eventBus_
-            //   .withTransaction(manager)
-            //   .emit(UserService.Events.CREATED, { id: newUser.id })
-            //  return newUser;
-            return created;
+            const newUser = await userRepo.save(created);
+            await this.eventBus_
+                .withTransaction(manager)
+                .emit(UserService_1.Events.CREATED, { id: newUser.id });
+            return newUser;
         });
     }
     async addUserToStore(user_id, store_id) {

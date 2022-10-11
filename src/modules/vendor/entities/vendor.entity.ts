@@ -38,7 +38,7 @@ export class Vendor extends SoftDeletableEntity{
     user: User;
 
    
-    @OneToMany(() => VendorPayment, (payment: VendorPayment) => payment.vendor)
+    @OneToMany(() => VendorPayment, (payment: VendorPayment) => payment.vendor, {cascade: true})
     @JoinColumn({name: "id", referencedColumnName: "vendor_id"})
     payments: VendorPayment[];
     

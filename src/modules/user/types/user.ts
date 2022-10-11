@@ -7,7 +7,7 @@ import { Store } from "../../store/entities/store.entity";
 import { Role } from "../../role/role.entity";
 import { Vendor } from "../../vendor/entities/vendor.entity";
 
-export interface CreateUserInput {
+export interface CreateUserInput  {
     
     email: string
     password: string
@@ -27,7 +27,7 @@ export interface CreateUserInput {
     
   }
   
-  export interface UpdateUserInput {
+  export interface UpdateUserInput  {
     email?: string
     phone?: string
     user_name?: string
@@ -36,16 +36,4 @@ export interface CreateUserInput {
     //role?: UserRoles
     metadata?: Record<string, unknown>
   }
-//   export type FilterableUserProps = PartialPick<
-//   User,
-//   | "email"
-//   | "phone"
-//   | "user_name"
-//   | "first_name"
-//   | "last_name"
-//   | "custom_role"
-//   | "store"
-//   | "created_at"
-//   | "updated_at"
-//   | "deleted_at"
-// >
+

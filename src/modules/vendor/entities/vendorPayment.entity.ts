@@ -10,7 +10,7 @@ export enum VendorPaymentTypes {
   }
 
 @MedusaEntity()
-@Entity()
+@Entity("vendor_payment")
 export class VendorPayment extends SoftDeletableEntity{
     
     @Column({type: "character varying",nullable: false,name: 'payment_type'})

@@ -11,6 +11,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.StoreModule = void 0;
 const medusa_extender_1 = require("medusa-extender");
+const customStore_migration_1 = require("./migrations/customStore.migration");
 const store_entity_1 = require("./entities/store.entity");
 const store_repository_1 = __importDefault(require("./repositories/store.repository"));
 const store_service_1 = __importDefault(require("./services/store.service"));
@@ -18,7 +19,7 @@ let StoreModule = class StoreModule {
 };
 StoreModule = __decorate([
     (0, medusa_extender_1.Module)({
-        imports: [store_entity_1.Store, store_repository_1.default, store_service_1.default],
+        imports: [store_entity_1.Store, store_repository_1.default, store_service_1.default, customStore_migration_1.CustomStoreMigration1665451262975],
     })
 ], StoreModule);
 exports.StoreModule = StoreModule;

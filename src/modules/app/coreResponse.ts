@@ -10,6 +10,9 @@ export function core_response(code: string, data: any){
     else if(code == MedusaError.Types.DUPLICATE_ERROR) {
         status = 401;
     }
+    else if(code == MedusaError.Types.NOT_ALLOWED) {
+        status = 403;
+    }
 
     res['code'] = status;
     res['body'] = data;

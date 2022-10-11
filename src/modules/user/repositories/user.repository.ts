@@ -80,9 +80,11 @@ export default class UserRepository extends Utils.repositoryMixin<User, MedusaUs
         }
       ): Promise<[User[], number]> {
         const options_ = { ...options }
-        delete options_?.where?.email
+        console.log("options - ", options_)
+        //delete options_?.where?.id
     
         let qb = this.createQueryBuilder("user")
+          .leftJoinAndSelect("user.store", "store")
           .select()
           .where(options_.where)
           .andWhere(
@@ -94,6 +96,7 @@ export default class UserRepository extends Utils.repositoryMixin<User, MedusaUs
               .orWhere(`user.user_name ILIKE :q`, { q: `%${q}%` })
               .orWhere(`user.first_name ILIKE :q`, { q: `%${q}%` })
               .orWhere(`user.last_name ILIKE :q`, { q: `%${q}%` })
+              
             })
           )
           .skip(options.skip)

@@ -22,7 +22,13 @@
  *           last_name:
  *             description: "The name of the User."
  *             type: string
- *           role:
+ *           phone:
+ *             description: "The phone number of the User."
+ *             type: string
+ *           user_name:
+ *             description: "The user name of the User."
+ *             type: string
+ *           custom_role:
  *             description: "Userrole assigned to the user."
  *             type: string
  *             enum: [admin, member, developer, vendor]

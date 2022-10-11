@@ -205,15 +205,15 @@ export  class UserService extends MedusaUserService {
 
       const created = userRepo.create(user);
       
-      // const newUser = await userRepo.save(created)
+      const newUser = await userRepo.save(created)
 
-      // await this.eventBus_
-      //   .withTransaction(manager)
-      //   .emit(UserService.Events.CREATED, { id: newUser.id })
+      await this.eventBus_
+        .withTransaction(manager)
+        .emit(UserService.Events.CREATED, { id: newUser.id })
 
-      //  return newUser;
+       return newUser;
 
-      return created;
+      
     })
   }
     

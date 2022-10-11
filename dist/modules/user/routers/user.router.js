@@ -41,6 +41,7 @@ const update_user_1 = __importStar(require("../handlers/update-user"));
 const middlewares_1 = __importStar(require("@medusajs/medusa/dist/api/middlewares"));
 const common_1 = require("@medusajs/medusa/dist/types/common");
 const delete_user_1 = __importDefault(require("../handlers/delete-user"));
+//select properties
 exports.defaultAdminUsersFields = [
     "id",
     "email",
@@ -61,7 +62,7 @@ exports.defaultAdminUsersFields = [
 ];
 exports.defaultAdminUsersRelations = [
     "store",
-    //"vendor"
+    "vendor"
 ];
 let UserRouter = class UserRouter {
 };

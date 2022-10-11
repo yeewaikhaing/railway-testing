@@ -21,6 +21,26 @@ let StoreService = class StoreService extends services_1.StoreService {
         this.storeRepository = container.storeRepository;
     }
     /**
+   * Creates a store if it doesn't already exist.
+   * @return The store.
+   */
+    async createStore(storeObject) {
+        return await this.atomicPhase_(async (transactionManager) => {
+            const storeRepository = transactionManager.getCustomRepository(this.storeRepository);
+            const currencyRepository = transactionManager.getCustomRepository(this.currencyRepository_);
+            let newStore = storeRepository.create(storeObject);
+            // Add default currency (USD) to store currencies
+            const usd = await currencyRepository.findOne({
+                code: "usd",
+            });
+            if (usd) {
+                newStore.currencies = [usd];
+            }
+            newStore = await storeRepository.save(newStore);
+            return newStore;
+        });
+    }
+    /**
     * Retrieve the store settings. There is always a maximum of one store.
     * @param config The config object from which the query will be built
     * @return the store
@@ -84,6 +104,7 @@ let StoreService = class StoreService extends services_1.StoreService {
         return store;
     }
 };
+StoreService.resolutionKey = 'storeService';
 StoreService = __decorate([
     (0, medusa_extender_1.Service)({ override: services_1.StoreService, scope: 'SCOPED' }),
     __metadata("design:paramtypes", [Object])
