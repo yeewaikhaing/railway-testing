@@ -33,7 +33,7 @@ export interface CreateUserInput  {
     user_name?: string
     first_name?: string
     last_name?: string
-    //role?: UserRoles
+    //custom_role?: CustomUserRoles
     metadata?: Record<string, unknown>
   }
 

@@ -187,7 +187,7 @@ import {
     IsString,
     ValidateNested,
   } from "class-validator"
-  import { MedusaError } from "medusa-core-utils";
+import { MedusaError } from "medusa-core-utils";
 import { VendorPaymentTypes } from "../entities/vendorPayment.entity";
 
 import { EntityManager } from "typeorm";
@@ -195,9 +195,6 @@ import { Type } from "class-transformer"
 import { validator } from "@medusajs/medusa/dist/utils/validator";
 import { VendorService } from "../services/vendor.service";
 import { UserService } from "../../user/services/user.service";
-import { VendorPaymentService } from "../services/vendorPayment.service";
-import { Vendor } from "../entities/vendor.entity";
-import { CreateUserInput } from "../../user/types/user";
 import { AdminCreateUserRequest } from "../../user/handlers/create-user";
 import { CustomUserRoles } from "../../user/entities/user.entity";
 import { core_response } from "../../app/coreResponse";
@@ -215,6 +212,7 @@ export default async (req, res) => {
         const loggedInUserId = req.user.userId;
         const loginUser = await userService.retrieve(req.user.userId);
         
+        //verify logged user must be admin. (admin user has not store_id)
         if(loginUser.store_id) {
           throw new MedusaError(
             MedusaError.Types.NOT_ALLOWED,

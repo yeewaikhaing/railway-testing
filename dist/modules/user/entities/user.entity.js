@@ -23,7 +23,6 @@ var CustomUserRoles;
 (function (CustomUserRoles) {
     CustomUserRoles["ADMIN"] = "admin";
     CustomUserRoles["MEMBER"] = "member";
-    CustomUserRoles["DEVELOPER"] = "developer";
     CustomUserRoles["VENDOR"] = "vendor";
 })(CustomUserRoles = exports.CustomUserRoles || (exports.CustomUserRoles = {}));
 let User = class User extends dist_1.User {

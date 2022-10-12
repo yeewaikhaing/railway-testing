@@ -11,7 +11,6 @@ import { DbAwareColumn } from '@medusajs/medusa/dist/utils/db-aware-column';
 export enum CustomUserRoles {
     ADMIN = "admin",
     MEMBER = "member",
-    DEVELOPER = "developer",
     VENDOR = "vendor",
   }
 @MedusaEntity({override: MedusaUser})

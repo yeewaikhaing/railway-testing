@@ -57,9 +57,7 @@ export default async (req, res) => {
   const vendorService: VendorService = req.scope.resolve(VendorService.resolutionKey);
 
   const vendor = await vendorService.retrieve(vendor_id, req.retrieveConfig)
-//   const rawVendor = await vendorService.retrieve(newVendor.id, {
-//     relations: ["user", "payments", "user.store"]
-//     })
+
   res.json({ vendor })
   
 }

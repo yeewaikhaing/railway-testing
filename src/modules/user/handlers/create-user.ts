@@ -94,18 +94,45 @@
  import _ from "lodash"
  import { validator } from "@medusajs/medusa/dist/utils/validator"
  import { EntityManager } from "typeorm"
-import { Store } from "../../store/entities/store.entity"
 import { core_response } from "../../app/coreResponse";
-
+import { MedusaError } from "medusa-core-utils";
 export default async (req, res) => {
 
   try {
     //console.log("req....", req.user.userId);
-    
+      const loggedInuserId = req.user.userId
       const validated = await validator(AdminCreateUserRequest, req.body)
 
       const userService: UserService = req.scope.resolve(UserService.resolutionKey);
-      //const data = _.omit(validated, ["password"])
+      
+      const loggedInUser = await userService.retrieve(loggedInuserId);
+      
+      // If loggedin user is member, does not allow to create user
+      if(loggedInUser.custom_role == CustomUserRoles.MEMBER) {
+        throw new MedusaError(
+          MedusaError.Types.NOT_ALLOWED,
+          `You have no permission to create a user.`
+        )
+      }
+
+      // If loggedin user is admin, does not allow to vendor at here.
+      if(loggedInUser.custom_role == CustomUserRoles.ADMIN 
+        && validated.custom_role == CustomUserRoles.VENDOR) {
+        throw new MedusaError(
+          MedusaError.Types.NOT_ALLOWED,
+          `Does not allow the creation of a vendor at this endpoint`
+        )
+      }
+
+      // If loggedin user is vendor, does not allow to vendor or admin user.
+      if(loggedInUser.custom_role == CustomUserRoles.VENDOR
+        && (validated.custom_role == CustomUserRoles.VENDOR
+              || validated.custom_role == CustomUserRoles.ADMIN)) {
+        throw new MedusaError(
+          MedusaError.Types.NOT_ALLOWED,
+          `You have no permission to create this user type`
+        )
+      }
 
       const manager: EntityManager = req.scope.resolve("manager")
       let user = await manager.transaction(async (transactionManager) => {

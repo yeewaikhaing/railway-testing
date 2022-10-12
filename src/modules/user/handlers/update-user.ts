@@ -82,6 +82,7 @@
  import { UserService } from "../services/user.service"
  import { validator } from "@medusajs/medusa/dist/utils/validator"
  import { EntityManager } from "typeorm"
+import { CustomUserRoles } from "../entities/user.entity";
  
 export default async (req, res) => {
   try {
@@ -134,9 +135,9 @@ export class AdminUpdateUserRequest {
   @IsOptional()
   last_name?: string
 
-//   @IsEnum(UserRoles)
-//   @IsOptional()
-//   role?: UserRoles
+  // @IsEnum(CustomUserRoles)
+  // @IsOptional()
+  // custom_role?: CustomUserRoles
 
   @IsString()
   @IsOptional()

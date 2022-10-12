@@ -6,7 +6,6 @@ import { Vendor } from '../../vendor/entities/vendor.entity';
 export declare enum CustomUserRoles {
     ADMIN = "admin",
     MEMBER = "member",
-    DEVELOPER = "developer",
     VENDOR = "vendor"
 }
 export declare class User extends MedusaUser {
