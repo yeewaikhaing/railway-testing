@@ -31,14 +31,13 @@ export class VendorService extends TransactionBaseService {
     protected readonly manager_: EntityManager;
     protected readonly vendorRepository_: typeof VendorRepository;
     protected readonly eventBusService_: EventBusService;
-   // protected readonly vendorPaymentRepository = typeof VendorPaymentRepository;
-
+   
     constructor(container: InjectedDependencies, private readonly config: any) {
         super(container);
         this.manager_ = container.manager;
         this.eventBusService_ = container.eventBusService;
         this.vendorRepository_ = container.vendorRepository;
-       // this.vendorPaymentRepository_ = container.vendorPaymentRepository;
+      
     }
 
    

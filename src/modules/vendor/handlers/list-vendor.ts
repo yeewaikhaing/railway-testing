@@ -1,9 +1,9 @@
 
 /**
- * @oas [get] /admin/v1/users
- * operationId: "GetUsers"
- * summary: "List Users"
- * description: "Retrieves all users."
+ * @oas [get] /admin/v1/vendors
+
+ * summary: "List Vendors"
+ * description: "Retrieves all Vendors."
  * x-authenticated: true
  * x-codeSamples:
  *   - lang: JavaScript
@@ -33,10 +33,10 @@
  *       application/json:
  *         schema:
  *           properties:
- *             users:
+ *             vendors:
  *               type: array
  *               items:
- *                 $ref: "#/components/schemas/user"
+ *                 $ref: "#/components/schemas/vendor"
  *   "400":
  *     $ref: "#/components/responses/400_error"
  *   "401":
@@ -61,7 +61,7 @@ export default async (req, res) => {
   let filterableFields = req.filterableFields
 
   filterableFields.custom_role = CustomUserRoles.VENDOR;
-  
+
   const [users, count] = await userService.listAndCount(
     loggedInUserId,
     filterableFields,
@@ -73,7 +73,7 @@ export default async (req, res) => {
     //   select: defaultAdminUsersFields,
     // })
     res.status(200).json({
-      users: users,
+      vendors: users,
       count,
       offset: listConfig.skip,
       limit: listConfig.take,
