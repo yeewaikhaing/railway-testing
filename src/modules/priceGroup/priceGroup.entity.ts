@@ -51,5 +51,10 @@ export class PriceGroup extends SoftDeletableEntity{
  *   price:
  *     type: Double
  *     description: The pricing group's price
+ *   areas:
+ *     type: array
+ *     description: The pricing group's areas
+ *     items:
+ *          -
  *     
  * */
