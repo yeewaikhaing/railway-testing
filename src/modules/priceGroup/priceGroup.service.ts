@@ -212,18 +212,8 @@ export class PriceGroupService extends TransactionBaseService{
         return
       }
 
-    //   const store = await this.storeService_.retrieve({
-    //     select: ["default_sales_channel_id"],
-    //   })
-
-    //   if (salesChannel.id === store?.default_sales_channel_id) {
-    //     throw new MedusaError(
-    //       MedusaError.Types.NOT_ALLOWED,
-    //       "You cannot delete the default sales channel"
-    //     )
-    //   }
-
-      await priceGroupRepo.softRemove(priceGroup)
+      //await priceGroupRepo.softRemove(priceGroup)
+      await priceGroupRepo.remove(priceGroup);
 
       await this.eventBusService_
         .withTransaction(transactionManager)

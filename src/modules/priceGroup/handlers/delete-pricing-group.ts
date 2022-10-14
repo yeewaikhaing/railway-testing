@@ -1,6 +1,6 @@
 
 /**
- * @oas [delete] /v1/admin/pricing-groups/{id}
+ * @oas [delete] /admin/v1/pricing-groups/{id}
  * description: "Deletes the pricing group."
  * x-authenticated: true
  * parameters:
@@ -58,16 +58,30 @@
  import { Request, Response } from "express"
 
  import { EntityManager } from "typeorm"
+import { DeliveryAreaService } from "../../delivery/services/deliveryArea.service";
  import { PriceGroupService } from "../priceGroup.service" ;
  
 export default async (req: Request, res: Response): Promise<void> => {
   const { id } = req.params
 
-  const priceGroupService: PriceGroupService = req.scope.resolve(
-    PriceGroupService.resolutionKey
-  );
+  const priceGroupService: PriceGroupService = req.scope.resolve(PriceGroupService.resolutionKey);
+  const deliveryAreaService: DeliveryAreaService = req.scope.resolve(DeliveryAreaService.resolutionKey);
+
   const manager: EntityManager = req.scope.resolve("manager")
   await manager.transaction(async (transactionManager) => {
+    
+    // update price_id set null in delivery_area table
+    const priceGroup = await priceGroupService.retrieve(id, {
+      relations: ["areas"]
+    })
+
+    let areas = priceGroup.areas;
+    if(areas.length != 0) {
+      const area_ids = areas.map( a => a.id);
+      await deliveryAreaService.updatePricing(null, area_ids);
+    }
+   
+   // delete pricing group
     return await priceGroupService
       .withTransaction(transactionManager)
       .delete(id)

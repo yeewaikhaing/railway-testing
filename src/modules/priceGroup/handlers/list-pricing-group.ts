@@ -1,5 +1,5 @@
 /**
- * @oas [get] /v1/admin/pricing-groups
+ * @oas [get] /admin/v1/pricing-groups
  * description: "Retrieves a list of pricing group"
  * x-authenticated: true
  * parameters:
@@ -170,6 +170,7 @@ import { Type } from "class-transformer";
     @IsOptional()
     @IsString()
     is_disabled?: boolean
+
   
     @IsOptional()
     @ValidateNested()

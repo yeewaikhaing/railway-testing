@@ -1,5 +1,5 @@
 /**
- * @oas [post] /v1/admin/pricing-groups
+ * @oas [post] /admin/v1/pricing-groups
  * description: "Creates a Pricing Group."
  * x-authenticated: true
  * requestBody:
@@ -9,6 +9,7 @@
  *         required:
  *           - name
  *           - price
+ *           - area_ids
  *         properties:
  *           name:
  *             description: The name of the price group
@@ -16,7 +17,9 @@
  *           price:
  *             description: The price of the price group
  *             type: string
- 
+ *           area_ids:
+ *             description: The areas id with the price group
+ *             type: array
  * x-codeSamples:
  *   - lang: JavaScript
  *     label: JS Client
@@ -66,28 +69,68 @@
  *   "500":
  *     $ref: "#/components/responses/500_error"
  */
-import { CreatePriceGroupInput } from "../types/price-group";
+import { validator } from "@medusajs/medusa/dist/utils/validator";
 import { PriceGroupService}  from "../priceGroup.service";
 import { EntityManager } from "typeorm" 
 import { Request, Response } from "express";
-import {IsNumber, IsString, IsBoolean, IsOptional} from "class-validator"
+import {IsNumber, IsString, IsBoolean, IsOptional, IsArray} from "class-validator"
 import { core_response } from "../../app/coreResponse";
+import { MedusaError } from "medusa-core-utils";
+import { DeliveryAreaService } from "../../delivery/services/deliveryArea.service";
 
  export default async (req: Request, res: Response) => {
     try {
-        const validatedBody = req.validatedBody as CreatePriceGroupInput;
-        console.log("validateBody", validatedBody);
+       const validated = await validator(AdminPostPriceGroupReq, req.body)
       
-    // const priceGroupService: PriceGroupService = req.scope.resolve(PriceGroupService.resolutionKey);
-      const priceGroupService: PriceGroupService = req.scope.resolve("priceGroupService");
+       const { area_ids  } = validated;
+       delete validated.area_ids;
+
+      // console.log("areas ", area_ids);
+       
+       //check the request contain pricing areas
+       if(area_ids.length == 0) {
+        throw new MedusaError(
+          MedusaError.Types.INVALID_DATA,
+          `The area id array(area_ids[]) must be provided for this pricing group`
+        )
+      }
+
+      const priceGroupService: PriceGroupService = req.scope.resolve(PriceGroupService.resolutionKey);
+      const deliveryAreaService: DeliveryAreaService = req.scope.resolve(DeliveryAreaService.resolutionKey);
+
+      // check the given area ids exist in database
+      const  count  = await deliveryAreaService.countById(area_ids);
+      
+      if(count != area_ids.length) {
+        throw new MedusaError(
+          MedusaError.Types.INVALID_DATA,
+          `Invalid the given area id. Please check your area id`
+        )
+      }
+      
+      
+      
       const manager: EntityManager = req.scope.resolve("manager")
-      const priceGroup = await manager.transaction(async (transactionManager) => {
-        return await priceGroupService
-          .withTransaction(transactionManager)
-          .create(validatedBody)
-      })
+      const newPriceGroup = await manager.transaction(async (transactionManager) => {
+      
+      const newPriceGroup = await priceGroupService
+                              .withTransaction(manager)
+                              .create(validated);
+      
+      await deliveryAreaService
+            .withTransaction(manager)
+            .updatePricing(newPriceGroup.id, area_ids);
     
-      res.status(200).json({ price_group: priceGroup })
+        return newPriceGroup;
+      })
+      
+      const rawPricingGroup = await priceGroupService.retrieve(newPriceGroup.id, {
+        relations: ["areas"]
+        })
+
+     
+      res.status(200).json({ "priceGroup": rawPricingGroup })
+      //res.status(200).send();
     } catch (e: any) {
       let data = { "type" : e.type, "message" : e.message};
         let result = core_response(e.type, data)
@@ -106,5 +149,8 @@ import { core_response } from "../../app/coreResponse";
     @IsBoolean()
     @IsOptional()
     is_disabled?: boolean
+
+    @IsArray()
+    area_ids: string[] = []
   
   }

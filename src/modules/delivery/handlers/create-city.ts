@@ -153,8 +153,8 @@ export default async (req, res) => {
 
 export class AdminPostCityAreaReq {
 
-    @IsString()
-    id: string
+    // @IsString()
+    // id: string
 
     @IsString()
     area_name: string

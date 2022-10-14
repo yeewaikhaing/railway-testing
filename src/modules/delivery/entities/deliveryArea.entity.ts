@@ -22,14 +22,14 @@ export class DeliveryArea extends SoftDeletableEntity{
     @Column({nullable: false})
     city_id: string;
 
-    @ManyToOne(() => City, (city: City) => city.areas )
+    @ManyToOne(() => City, (city: City) => city.areas, {eager: true} )
     @JoinColumn({name: 'city_id'})
     city: City
 
     @Column({nullable: true})
     pricing_id: string;
 
-    @ManyToOne(() => PriceGroup, (pricing: PriceGroup) => pricing.areas, {eager:true} )
+    @ManyToOne(() => PriceGroup, (pricing: PriceGroup) => pricing.areas)//, {eager:true} 
     @JoinColumn({name: 'pricing_id'})
     priceGroup: PriceGroup;
 
