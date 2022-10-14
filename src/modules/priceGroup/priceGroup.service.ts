@@ -30,7 +30,6 @@ export class PriceGroupService extends TransactionBaseService{
     constructor({manager,priceGroupRepository, eventBusService}: InjectedDependencies) {
     //  constructor(container: InjectedDependencies) {
         super({manager,priceGroupRepository, eventBusService}); // 
-        //onsole.log("This is price group service");
         this.manager_ = manager;
         this.eventBusService_ = eventBusService;
         this.priceGroupRepository_ = priceGroupRepository;

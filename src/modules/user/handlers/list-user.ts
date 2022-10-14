@@ -1,4 +1,3 @@
-
 /**
  * @oas [get] /admin/v1/users
  * operationId: "GetUsers"

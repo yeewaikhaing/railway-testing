@@ -29,7 +29,7 @@ export class DeliveryArea extends SoftDeletableEntity{
     @Column({nullable: true})
     pricing_id: string;
 
-    @ManyToOne(() => PriceGroup, (pricing: PriceGroup) => pricing.areas )
+    @ManyToOne(() => PriceGroup, (pricing: PriceGroup) => pricing.areas, {eager:true} )
     @JoinColumn({name: 'pricing_id'})
     priceGroup: PriceGroup;
 
@@ -39,21 +39,25 @@ export class DeliveryArea extends SoftDeletableEntity{
     }
 }
 /**
- * @schema city
- * title: "city"
- * description: "Represents a city"
+ * @schema area
+ * title: "delivery area"
+ * description: "Represents a area"
  * required:
- *   - city_name
+ *   - area_name
+ *   - city_id
  * properties:
  *   id:
  *     type: string
- *     description: The city's ID
- *     example: city_01G2SG30J8C85S4A5CHM2S1NS2
- *   city_name:
+ *     description: The area's ID
+ *     example: area_01G2SG30J8C85S4A5CHM2S1NS2
+ *   area_name:
  *     type: string
- *     description: The city's name
- *   is_disabled:
- *     type: Double
- *     description: The city's price
+ *     description: The area's name
+ *   city:
+ *     type: object
+ *     description: The city of area
+ *   priceGroup:
+ *     type: string
+ *     description: The price group of area
  *     
  * */

@@ -28,11 +28,11 @@ export declare class UserService extends MedusaUserService {
    */
     delete(userId: string): Promise<void>;
     /**
-   * Updates a user.
-   * @param {object} userId - id of the user to update
-   * @param {object} update - the values to be updated on the user
-   * @return {Promise} the result of create
-   */
+     * Updates a user.
+     * @param {object} userId - id of the user to update
+     * @param {object} update - the values to be updated on the user
+     * @return {Promise} the result of create
+     */
     update(userId: string, update: UpdateUserInput): Promise<User>;
     /**
   * Creates a user with username being validated.

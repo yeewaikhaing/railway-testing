@@ -56,11 +56,11 @@ let UserService = UserService_1 = class UserService extends services_1.UserServi
         });
     }
     /**
-   * Updates a user.
-   * @param {object} userId - id of the user to update
-   * @param {object} update - the values to be updated on the user
-   * @return {Promise} the result of create
-   */
+     * Updates a user.
+     * @param {object} userId - id of the user to update
+     * @param {object} update - the values to be updated on the user
+     * @return {Promise} the result of create
+     */
     async update(userId, update) {
         return await this.atomicPhase_(async (manager) => {
             const userRepo = manager.getCustomRepository(this.userRepository_);

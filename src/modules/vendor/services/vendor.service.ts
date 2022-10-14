@@ -6,7 +6,7 @@ import { VendorRepository } from '../repositories/vendor.repository';
 import { Vendor } from '../entities/vendor.entity';
 //, FindVendorConfig
 import { CreateVendorInput } from '../types/vendor';
-import { FindConfig, Selector,QuerySelector } from "@medusajs/medusa/dist/types/common";
+import { FindConfig, Selector } from "@medusajs/medusa/dist/types/common";
 import { MedusaError } from "medusa-core-utils";
 import { buildQuery } from "@medusajs/medusa/dist/utils";
 //import { VendorPaymentRepository } from '../repositories/vendorPayment.repository';
@@ -40,12 +40,11 @@ export class VendorService extends TransactionBaseService {
       
     }
 
-   
      /**
-   * Creates a vendor.
-   * @param vendorObject - the vendor to create
-   * @return resolves to the creation result.
-   */
+     * Creates a vendor.
+     * @param vendorObject - the vendor to create
+     * @return resolves to the creation result.
+     */
   async create(vendorObject: CreateVendorInput, user_id: string): Promise<Vendor> {
     return await this.atomicPhase_(async (manager) => {
       

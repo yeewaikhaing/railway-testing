@@ -59,7 +59,7 @@ export  class UserService extends MedusaUserService {
     })
   }
 
-    /**
+  /**
    * Updates a user.
    * @param {object} userId - id of the user to update
    * @param {object} update - the values to be updated on the user

@@ -1,13 +1,13 @@
 import { 
     Column, 
     Entity,
-    BeforeInsert,
+    //BeforeInsert,
     OneToMany,
     JoinColumn
 } from "typeorm"; 
 import { Entity as MedusaEntity } from "medusa-extender";
 import { SoftDeletableEntity } from "@medusajs/medusa";
-import { generateEntityId } from "@medusajs/medusa/dist/utils";
+//import { generateEntityId } from "@medusajs/medusa/dist/utils";
 import { DeliveryArea } from "./deliveryArea.entity";
 
 @MedusaEntity()
@@ -17,17 +17,14 @@ export class City extends SoftDeletableEntity{
     @Column({nullable: false})
     city_name: string;
 
-    @Column({type: "boolean", default: false})
-    is_disabled: boolean;
-
     @OneToMany(() => DeliveryArea, (area: DeliveryArea) => area.city, {cascade: true})
     @JoinColumn({ name: 'id', referencedColumnName: 'city_id' })
     areas: DeliveryArea[];
 
-    @BeforeInsert()
-    private beforeInsert(): void {
-        this.id = generateEntityId(this.id, "city");
-    }
+    // @BeforeInsert()
+    // private beforeInsert(): void {
+    //     this.id = generateEntityId(this.id, "city");
+    // }
 }
 /**
  * @schema city
@@ -43,8 +40,7 @@ export class City extends SoftDeletableEntity{
  *   city_name:
  *     type: string
  *     description: The city's name
- *   is_disabled:
- *     type: Double
- *     description: The city's price
- *     
+ *   area:
+ *      type: array
+ *      description: The city's areas
  * */
