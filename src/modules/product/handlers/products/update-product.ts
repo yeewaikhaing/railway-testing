@@ -1,45 +1,46 @@
 import {
-    CreateProductVariantInput,
-    ProductVariantPricesCreateReq,
-  } from "../../types/product-variant"
-  import {
     IsArray,
     IsBoolean,
     IsEnum,
+    IsInt,
     IsNumber,
     IsObject,
     IsOptional,
     IsString,
+    NotEquals,
+    ValidateIf,
     ValidateNested,
   } from "class-validator"
-  import { core_response } from "../../../app/coreResponse";
-
-import { MedusaError } from "medusa-core-utils";
-import {
-    ShippingProfileService,
-  } from "@medusajs/medusa/dist/services"
-import { PricingService } from "../../services/pricing.service";
-import { ProductService } from "../../services/product.service";
-import { ProductVariantService } from "../../services/productVariant.service";
-import {ProductTagReq, ProductTypeReq, ProductCategoryReq} from "../../types/product" 
-import { defaultAdminProductFields, defaultAdminProductRelations } from "../../routers/product.router";
-import { EntityManager } from "typeorm"
-import { ProductStatus } from "@medusajs/medusa/dist/models/product"; 
-import { Type } from "class-transformer"
-import { validator } from "@medusajs/medusa/dist/utils/validator";
+  
+  import { PricingService } from "../../services/pricing.service"
+  import { ProductService } from "../../services/product.service"
+  import {
+    //ProductSalesChannelReq,
+    ProductTagReq,
+    ProductTypeReq,
+    ProductCategoryReq
+  } from "../../types/product";
+  import { defaultAdminProductFields, defaultAdminProductRelations } from "../../routers/product.router";
+  import { EntityManager } from "typeorm"
+  //import { FeatureFlagDecorators } from "../../../../utils/feature-flag-decorators"
+  import { ProductStatus } from "@medusajs/medusa/dist/models/product";
+  import { ProductVariantPricesUpdateReq } from "../../types/product-variant";
+  //import SalesChannelFeatureFlag from "../../../../loaders/feature-flags/sales-channels"
+  import { Type } from "class-transformer"
+  import { validator } from "@medusajs/medusa/dist/utils/validator";
   
   /**
-   * @oas [post] /admin/v1/products
-   * operationId: "PostProducts"
-   * summary: "Create a Product"
+   * @oas [post] /admin/v1/products/{id}
+   * operationId: "PostProductsProduct"
+   * summary: "Update a Product"
+   * description: "Updates a Product"
    * x-authenticated: true
-   * description: "Creates a Product"
+   * parameters:
+   *   - (path) id=* {string} The ID of the Product.
    * requestBody:
    *   content:
    *     application/json:
    *       schema:
-   *         required:
-   *           - title
    *         properties:
    *           title:
    *             description: "The title of the Product"
@@ -50,14 +51,9 @@ import { validator } from "@medusajs/medusa/dist/utils/validator";
    *           description:
    *             description: "A description of the Product."
    *             type: string
-   *           is_giftcard:
-   *             description: A flag to indicate if the Product represents a Gift Card. Purchasing Products with this flag set to `true` will result in a Gift Card being created.
-   *             type: boolean
-   *             default: false
    *           discountable:
    *             description: A flag to indicate if discounts can be applied to the LineItems generated from this Product
    *             type: boolean
-   *             default: true
    *           images:
    *             description: Images of the Product.
    *             type: array
@@ -73,7 +69,6 @@ import { validator } from "@medusajs/medusa/dist/utils/validator";
    *             description: The status of the product.
    *             type: string
    *             enum: [draft, proposed, published, rejected]
-   *             default: draft
    *           type:
    *             description: The Product Type to associate the Product with.
    *             type: object
@@ -102,23 +97,24 @@ import { validator } from "@medusajs/medusa/dist/utils/validator";
    *                 value:
    *                   description: The value of the Tag, these will be upserted.
    *                   type: string
-   *           options:
-   *             description: The Options that the Product should have. These define on which properties the Product's Product Variants will differ.
+   *           sales_channels:
+   *             description: "[EXPERIMENTAL] Sales channels to associate the Product with."
    *             type: array
    *             items:
    *               required:
-   *                 - title
+   *                 - id
    *               properties:
-   *                 title:
-   *                   description: The title to identify the Product Option by.
+   *                 id:
+   *                   description: The ID of an existing Sales channel.
    *                   type: string
    *           variants:
    *             description: A list of Product Variants to create with the Product.
    *             type: array
    *             items:
-   *               required:
-   *                 - title
    *               properties:
+   *                 id:
+   *                   description: The ID of the Product Variant.
+   *                   type: string
    *                 title:
    *                   description: The title to identify the Product Variant by.
    *                   type: string
@@ -140,7 +136,6 @@ import { validator } from "@medusajs/medusa/dist/utils/validator";
    *                 inventory_quantity:
    *                   description: The amount of stock kept for the Product Variant.
    *                   type: integer
-   *                   default: 0
    *                 allow_backorder:
    *                   description: Whether the Product Variant can be purchased when out of stock.
    *                   type: boolean
@@ -177,6 +172,9 @@ import { validator } from "@medusajs/medusa/dist/utils/validator";
    *                     required:
    *                       - amount
    *                     properties:
+   *                       id:
+   *                         description: The ID of the Price.
+   *                         type: string
    *                       region_id:
    *                         description: The ID of the Region for which the price is used. Only required if currency_code is not provided.
    *                         type: string
@@ -199,13 +197,17 @@ import { validator } from "@medusajs/medusa/dist/utils/validator";
    *                   type: array
    *                   items:
    *                     required:
+   *                       - option_id
    *                       - value
    *                     properties:
+   *                       option_id:
+   *                         description: The ID of the Option.
+   *                         type: string
    *                       value:
    *                         description: The value to give for the Product Option at the same index in the Product's `options` field.
    *                         type: string
    *           weight:
-   *             description: The weight of the Product.
+   *             description: The wieght of the Product.
    *             type: number
    *           length:
    *             description: The length of the Product.
@@ -216,9 +218,6 @@ import { validator } from "@medusajs/medusa/dist/utils/validator";
    *           width:
    *             description: The width of the Product.
    *             type: number
-   *           hs_code:
-   *             description: The Harmonized System code for the Product Variant.
-   *             type: string
    *           origin_country:
    *             description: The country of origin of the Product.
    *             type: string
@@ -238,10 +237,9 @@ import { validator } from "@medusajs/medusa/dist/utils/validator";
    *       import Medusa from "@medusajs/medusa-js"
    *       const medusa = new Medusa({ baseUrl: MEDUSA_BACKEND_URL, maxRetries: 3 })
    *       // must be previously logged in or use api token
-   *       medusa.admin.products.create({
+   *       medusa.admin.products.update(product_id, {
    *         title: 'Shirt',
-   *         is_giftcard: false,
-   *         discountable: true
+   *         images: []
    *       })
    *       .then(({ product }) => {
    *         console.log(product.id);
@@ -249,11 +247,11 @@ import { validator } from "@medusajs/medusa/dist/utils/validator";
    *   - lang: Shell
    *     label: cURL
    *     source: |
-   *       curl --location --request POST 'https://medusa-url.com/admin/products' \
+   *       curl --location --request POST 'https://medusa-url.com/admin/products/{id}' \
    *       --header 'Authorization: Bearer {api_token}' \
    *       --header 'Content-Type: application/json' \
    *       --data-raw '{
-   *           "title": "Shirt"
+   *           "title": "Size"
    *       }'
    * security:
    *   - api_token: []
@@ -283,141 +281,71 @@ import { validator } from "@medusajs/medusa/dist/utils/validator";
    *     $ref: "#/components/responses/500_error"
    */
   export default async (req, res) => {
-    try {
-      const validated = await validator(AdminPostProductsReq, req.body)
+    const { id } = req.params
+  
+    const validated = await validator(AdminPostProductsProductReq, req.body)
   
     const productService: ProductService = req.scope.resolve(ProductService.resolutionKey);
-    const pricingService: PricingService = req.scope.resolve(PricingService.resolutionKey);
-    const productVariantService: ProductVariantService = req.scope.resolve(ProductVariantService.resolutionKey);
-
-    const shippingProfileService: ShippingProfileService = req.scope.resolve(
-      "shippingProfileService"
-    )
-    
-    //console.log("validated", validated);
-    const entityManager: EntityManager = req.scope.resolve("manager")
+    const pricingService: PricingService = req.scope.resolve(ProductService.resolutionKey);
   
-    const newProduct = await entityManager.transaction(async (manager) => {
-      const { variants, categories } = validated
-      delete validated.variants
-        
-     console.log("categories: ", categories);
-     if(categories.length == 0) {
-      throw new MedusaError(
-        MedusaError.Types.INVALID_DATA,
-        `At least one category must be provided.`
-    )
-     }
-      
-      
-      if (!validated.thumbnail && validated.images && validated.images.length) {
-        validated.thumbnail = validated.images[0]
-      }
-  
-      let shippingProfile
-      // Get default shipping profile
-      if (validated.is_giftcard) {
-        shippingProfile = await shippingProfileService
-          .withTransaction(manager)
-          .retrieveGiftCardDefault()
-      } else {
-        shippingProfile = await shippingProfileService
-          .withTransaction(manager)
-          .retrieveDefault()
-      }
-  //console.log("shippingProfile ", shippingProfile);
-  
-      const newProduct = await productService
-        .withTransaction(manager)
-        .create({ ...validated, profile_id: shippingProfile.id })
-  
-      if (variants) {
-        for (const [i, variant] of variants.entries()) {
-          variant["variant_rank"] = i
-        }
-  
-        const optionIds =
-          validated?.options?.map(
-            (o) => newProduct.options.find((newO) => newO.title === o.title)?.id
-          ) || []
-  
-        await Promise.all(
-          variants.map(async (v) => {
-            const variant = {
-              ...v,
-              options:
-                v?.options?.map((o, index) => ({
-                  ...o,
-                  option_id: optionIds[index],
-                })) || [],
-            }
-  
-            await productVariantService
-              .withTransaction(manager)
-              .create(newProduct.id, variant as CreateProductVariantInput)
-          })
-        )
-      }
-  
-      return newProduct
+    const manager: EntityManager = req.scope.resolve("manager")
+    await manager.transaction(async (transactionManager) => {
+      await productService
+        .withTransaction(transactionManager)
+        .update(id, validated)
     })
   
-    const rawProduct = await productService.retrieve(newProduct.id, {
+    const rawProduct = await productService.retrieve(id, {
       select: defaultAdminProductFields,
       relations: defaultAdminProductRelations,
     })
   
-    const [product] = await pricingService.setProductPrices([rawProduct])
+    //const [product] = await pricingService.setProductPrices([rawProduct])
   
-    res.json({ product })
-    //res.json({ newProduct});
-    } catch (e: any) {
-      let data = { "type" : e.type, "message" : e.message};
-      let result = core_response(e.type, data)
-      
-      res.status(result['code']).send(result['body']);
-  }
+    //res.json({ product })
+    res.json({rawProduct});
   }
   
- 
-
   class ProductVariantOptionReq {
     @IsString()
     value: string
-  }
   
-  class ProductOptionReq {
     @IsString()
-    title: string
+    option_id: string
   }
   
   class ProductVariantReq {
     @IsString()
-    title: string
+    @IsOptional()
+    id?: string
+  
+    @IsString()
+    @IsOptional()
+    title?: string
   
     @IsString()
     @IsOptional()
     sku?: string
   
-    // @IsString()
-    // @IsOptional()
-    // ean?: string
+    @IsString()
+    @IsOptional()
+    ean?: string
   
-    // @IsString()
-    // @IsOptional()
-    // upc?: string
+    @IsString()
+    @IsOptional()
+    upc?: string
   
     @IsString()
     @IsOptional()
     barcode?: string
   
-    // @IsString()
-    // @IsOptional()
-    // hs_code?: string
-  
-    @IsNumber()
+    @IsString()
     @IsOptional()
-    inventory_quantity = 0
+    hs_code?: string
+  
+    @IsInt()
+    @IsOptional()
+    inventory_quantity?: number
   
     @IsBoolean()
     @IsOptional()
@@ -442,29 +370,28 @@ import { validator } from "@medusajs/medusa/dist/utils/validator";
     @IsNumber()
     @IsOptional()
     width?: number
-
-    
   
-    // @IsString()
-    // @IsOptional()
-    // origin_country?: string
+    @IsString()
+    @IsOptional()
+    origin_country?: string
   
-    // @IsString()
-    // @IsOptional()
-    // mid_code?: string
+    @IsString()
+    @IsOptional()
+    mid_code?: string
   
-    // @IsString()
-    // @IsOptional()
-    // material?: string
+    @IsString()
+    @IsOptional()
+    material?: string
   
-    // @IsObject()
-    // @IsOptional()
-    // metadata?: Record<string, unknown>
+    @IsObject()
+    @IsOptional()
+    metadata?: Record<string, unknown>
   
     @IsArray()
+    @IsOptional()
     @ValidateNested({ each: true })
-    @Type(() => ProductVariantPricesCreateReq)
-    prices: ProductVariantPricesCreateReq[]
+    @Type(() => ProductVariantPricesUpdateReq)
+    prices: ProductVariantPricesUpdateReq[]
   
     @IsOptional()
     @Type(() => ProductVariantOptionReq)
@@ -473,15 +400,17 @@ import { validator } from "@medusajs/medusa/dist/utils/validator";
     options?: ProductVariantOptionReq[] = []
   }
   
-  export class AdminPostProductsReq {
+  export class AdminPostProductsProductReq {
 
     @IsArray()
+    @IsOptional()
     @ValidateNested({ each: true })
     @Type(() => ProductCategoryReq)
-    categories: ProductCategoryReq[]
+    categories?: ProductCategoryReq[]
 
     @IsString()
-    title: string
+    @IsOptional()
+    title?: string
   
     @IsString()
     @IsOptional()
@@ -492,14 +421,12 @@ import { validator } from "@medusajs/medusa/dist/utils/validator";
     description?: string
   
     @IsBoolean()
-    is_giftcard = false
-  
-    @IsBoolean()
-    discountable = true
+    @IsOptional()
+    discountable?: boolean
   
     @IsArray()
     @IsOptional()
-    images?: string[]
+    images: string[]
   
     @IsString()
     @IsOptional()
@@ -509,9 +436,10 @@ import { validator } from "@medusajs/medusa/dist/utils/validator";
     @IsOptional()
     handle?: string
   
-    @IsOptional()
     @IsEnum(ProductStatus)
-    status?: ProductStatus = ProductStatus.DRAFT
+    @NotEquals(null)
+    @ValidateIf((object, value) => value !== undefined)
+    status?: ProductStatus
   
     @IsOptional()
     @Type(() => ProductTypeReq)
@@ -528,11 +456,13 @@ import { validator } from "@medusajs/medusa/dist/utils/validator";
     @IsArray()
     tags?: ProductTagReq[]
   
-    @IsOptional()
-    @Type(() => ProductOptionReq)
-    @ValidateNested({ each: true })
-    @IsArray()
-    options?: ProductOptionReq[]
+    // @FeatureFlagDecorators(SalesChannelFeatureFlag.key, [
+    //   IsOptional(),
+    //   Type(() => ProductSalesChannelReq),
+    //   ValidateNested({ each: true }),
+    //   IsArray(),
+    // ])
+    // sales_channels: ProductSalesChannelReq[] | null
   
     @IsOptional()
     @Type(() => ProductVariantReq)
@@ -555,26 +485,24 @@ import { validator } from "@medusajs/medusa/dist/utils/validator";
     @IsNumber()
     @IsOptional()
     width?: number
-
-    @IsNumber()
+  
+    @IsString()
     @IsOptional()
-    commission?: number
+    hs_code?: string
   
-    // @IsString()
-    // @IsOptional()
-    // hs_code?: string
+    @IsString()
+    @IsOptional()
+    origin_country?: string
   
-    // @IsString()
-    // @IsOptional()
-    // origin_country?: string
+    @IsString()
+    @IsOptional()
+    mid_code?: string
   
-    // @IsString()
-    // @IsOptional()
-    // mid_code?: string
+    @IsString()
+    @IsOptional()
+    material?: string
   
-    // @IsString()
-    // @IsOptional()
-    // material?: string
-  
-    
+    @IsObject()
+    @IsOptional()
+    metadata?: Record<string, unknown>
   }

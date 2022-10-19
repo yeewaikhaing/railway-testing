@@ -8,6 +8,7 @@ import middlewares, {
 import createProduct from '../handlers/products/create-product';
 import getProduct from '../handlers/products/get-product';
 import listProduct, { AdminGetProductsParams } from '../handlers/products/list-product';
+import updateProduct from '../handlers/products/update-product';
 
 export const defaultAdminProductRelations = [
   "variants",
@@ -116,8 +117,8 @@ export const allowedAdminProductFields = [
           ],
       },
       /**
-         * List products
-         */
+       * List products
+       */
        {
         requiredAuth: true,
         path: '/admin/v1/products',
@@ -133,6 +134,18 @@ export const allowedAdminProductFields = [
             middlewares.wrap(listProduct),
         ],
     },
+    /**
+     * Update a  product
+     */
+     {
+      requiredAuth: true,
+      path: '/admin/v1/products/:id',
+      method: 'post',
+      handlers: [
+          middlewares.authenticate(), // authentication is required
+          middlewares.wrap(updateProduct),
+      ],
+  },
     ] 
 })
 export class ProductRouter {}

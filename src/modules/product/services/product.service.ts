@@ -9,7 +9,8 @@ import { FlagRouter } from '@medusajs/medusa/dist/utils/flag-router';
 import { 
   CreateProductInput,
   FilterableProductProps ,
-  FindProductConfig
+  FindProductConfig,
+  UpdateProductInput
 } from '../types/product';
 import { Category } from '../../category/entities/category.entity';
 import {ProductRepository, FindWithoutRelationsOptions} from '../repositories/product.repository';
@@ -17,6 +18,7 @@ import { buildQuery, isDefined, setMetadata } from "@medusajs/medusa/dist/utils"
 import { Selector } from "@medusajs/medusa/dist/types/common";
 import { MedusaError } from "medusa-core-utils"
 import { formatException } from "@medusajs/medusa/dist/utils/exception-formatter";
+import {ProductVariant } from "@medusajs/medusa/dist/models/product-variant";
 type ConstructorParams = {
     manager: any;
     loggedInUser?: User;
@@ -65,6 +67,173 @@ export class ProductService extends MedusaProductService {
         
 
     }
+
+/**
+   * Updates a product. Product variant updates should use dedicated methods,
+   * e.g. `addVariant`, etc. The function will throw errors if metadata or
+   * product variant updates are attempted.
+   * @param {string} productId - the id of the product. Must be a string that
+   *   can be casted to an ObjectId
+   * @param {object} update - an object with the update values.
+   * @return {Promise} resolves to the update result.
+   */
+ async update(
+  productId: string,
+  update: UpdateProductInput
+): Promise<Product> {
+  return await this.atomicPhase_(async (manager) => {
+    const productRepo = manager.getCustomRepository(this.productRepository_)
+    const productVariantRepo = manager.getCustomRepository(
+      this.productVariantRepository_
+    )
+    const productTagRepo = manager.getCustomRepository(
+      this.productTagRepository_
+    )
+    const productTypeRepo = manager.getCustomRepository(
+      this.productTypeRepository_
+    )
+    const imageRepo = manager.getCustomRepository(this.imageRepository_)
+
+    const relations = ["variants", "tags", "images","categories"]
+
+    // if (
+    //   this.featureFlagRouter_.isFeatureEnabled(SalesChannelFeatureFlag.key)
+    // ) {
+    //   if (isDefined(update.sales_channels)) {
+    //     relations.push("sales_channels")
+    //   }
+    // } else {
+    //   if (isDefined(update.sales_channels)) {
+    //     throw new MedusaError(
+    //       MedusaError.Types.INVALID_DATA,
+    //       "the property sales_channels should no appears as part of the payload"
+    //     )
+    //   }
+    // }
+
+    const product = await this.retrieve(productId, {
+      relations,
+    })
+
+    const {
+      variants,
+      metadata,
+      images,
+      tags,
+      type,
+      //sales_channels: salesChannels,
+      categories: categories,
+      ...rest
+    } = update
+
+    if (!product.thumbnail && !update.thumbnail && images?.length) {
+      product.thumbnail = images[0]
+    }
+
+    if (images) {
+      product.images = await imageRepo.upsertImages(images)
+    }
+
+    if (metadata) {
+      product.metadata = setMetadata(product, metadata)
+    }
+
+    if (typeof type !== `undefined`) {
+      product.type_id = (await productTypeRepo.upsertType(type))?.id || null
+    }
+
+    if (tags) {
+      product.tags = await productTagRepo.upsertTags(tags)
+    }
+
+    product.categories = [];
+    if(categories?.length) {
+        const categoryIds = categories?.map((category) => category.id);
+        product.categories = categoryIds?.map((id) => ({ id } as Category));
+    }
+    // if (
+    //   this.featureFlagRouter_.isFeatureEnabled(SalesChannelFeatureFlag.key)
+    // ) {
+    //   if (isDefined(salesChannels)) {
+    //     product.sales_channels = []
+    //     if (salesChannels?.length) {
+    //       const salesChannelIds = salesChannels?.map((sc) => sc.id)
+    //       product.sales_channels = salesChannelIds?.map(
+    //         (id) => ({ id } as SalesChannel)
+    //       )
+    //     }
+    //   }
+    // }
+
+    if (variants) {
+      // Iterate product variants and update their properties accordingly
+      for (const variant of product.variants) {
+        const exists = variants.find((v) => v.id && variant.id === v.id)
+        if (!exists) {
+          await productVariantRepo.remove(variant)
+        }
+      }
+
+      const newVariants: ProductVariant[] = []
+      for (const [i, newVariant] of variants.entries()) {
+        const variant_rank = i
+
+        if (newVariant.id) {
+          const variant = product.variants.find((v) => v.id === newVariant.id)
+
+          if (!variant) {
+            throw new MedusaError(
+              MedusaError.Types.NOT_FOUND,
+              `Variant with id: ${newVariant.id} is not associated with this product`
+            )
+          }
+
+          const saved = await this.productVariantService_
+            .withTransaction(manager)
+            .update(variant, {
+              ...newVariant,
+              variant_rank,
+              product_id: variant.product_id,
+            })
+
+          newVariants.push(saved)
+        } else {
+          // If the provided variant does not have an id, we assume that it
+          // should be created
+          const created = await this.productVariantService_
+            .withTransaction(manager)
+            .create(product.id, {
+              ...newVariant,
+              variant_rank,
+              options: newVariant.options || [],
+              prices: newVariant.prices || [],
+            })
+
+          newVariants.push(created)
+        }
+      }
+
+      product.variants = newVariants
+    }
+
+    for (const [key, value] of Object.entries(rest)) {
+      if (typeof value !== `undefined`) {
+        product[key] = value
+      }
+    }
+
+    const result = await productRepo.save(product)
+
+    await this.eventBus_
+      .withTransaction(manager)
+      .emit(ProductService.Events.UPDATED, {
+        id: result.id,
+        fields: Object.keys(update),
+      })
+    return result
+  })
+}
+
 
 /**
    * Lists products based on the provided parameters and includes the count of

@@ -65,3 +65,28 @@ export type CreateProductVariantInput = {
     // @IsInt()
     // max_quantity?: number
   }
+
+  export class ProductVariantPricesUpdateReq {
+    @IsString()
+    @IsOptional()
+    id?: string
+  
+    @ValidateIf((o) => !o.id)
+    @Validate(XorConstraint, ["currency_code"])
+    region_id?: string
+  
+    @ValidateIf((o) => !o.id)
+    @Validate(XorConstraint, ["region_id"])
+    currency_code?: string
+  
+    @IsInt()
+    amount: number
+  
+    // @IsOptional()
+    // @IsInt()
+    // min_quantity?: number
+  
+    // @IsOptional()
+    // @IsInt()
+    // max_quantity?: number
+  }

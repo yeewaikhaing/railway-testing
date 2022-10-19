@@ -121,11 +121,11 @@ import {IsType } from '@medusajs/medusa/dist/utils/validators/is-type';
   width?: number
   commission?: number
   
-  // hs_code?: string
-  // origin_country?: string
-  // mid_code?: string
-  // material?: string
-  // metadata?: Record<string, unknown>
+  hs_code?: string
+  origin_country?: string
+  mid_code?: string
+  material?: string
+  metadata?: Record<string, unknown>
 }
 
 export type CreateProductProductCategoryInput = {
@@ -176,6 +176,36 @@ export type CreateProductProductVariantPriceInput = {
   //max_quantity?: number
 }
 
+export type UpdateProductProductVariantDTO = {
+  id?: string
+  title?: string
+  sku?: string
+  ean?: string
+  upc?: string
+  barcode?: string
+  hs_code?: string
+  inventory_quantity?: number
+  allow_backorder?: boolean
+  manage_inventory?: boolean
+  weight?: number
+  length?: number
+  height?: number
+  width?: number
+  origin_country?: string
+  mid_code?: string
+  material?: string
+  metadata?: Record<string, unknown>
+  prices?: CreateProductProductVariantPriceInput[]
+  options?: { value: string; option_id: string }[]
+}
+
+export type UpdateProductInput = Omit<
+  Partial<CreateProductInput>,
+  "variants"
+> & {
+  variants?: UpdateProductProductVariantDTO[]
+}
+
 export class ProductTagReq {
     @IsString()
     @IsOptional()
@@ -194,4 +224,8 @@ export class ProductTagReq {
     value: string
   }
 
+  export class ProductCategoryReq {
+    @IsString()
+    id: string
+  }
   export type FindProductConfig = FindConfig<Product> & PriceListLoadConfig
