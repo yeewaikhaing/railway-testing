@@ -1,5 +1,5 @@
 /**
- * @oas [get] /v1/store/auth
+ * @oas [get] /store/v1/auth
  * operationId: "GetAuth"
  * summary: "Get Current Customer"
  * description: "Gets the currently logged in Customer."

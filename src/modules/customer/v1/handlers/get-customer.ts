@@ -1,5 +1,5 @@
 /**
- * @oas [get] /v1/customers/me
+ * @oas [get] /store/v1/customers/me
  * summary: Get a Customer
  * description: "Retrieves a Customer - the Customer must be logged in to retrieve their details."
  * responses:

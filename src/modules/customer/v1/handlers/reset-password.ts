@@ -5,7 +5,7 @@ import { validator } from "@medusajs/medusa/dist/utils/validator";
 import { EntityManager } from "typeorm"
 
 /**
- * @oas [post] /v1/store/customers/reset-password
+ * @oas [post] /store/v1/customers/reset-password
  * description: "Resets a Customer's password using a password token created by a previous /password-token request."
  * requestBody:
  *   content:

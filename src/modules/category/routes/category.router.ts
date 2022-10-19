@@ -37,7 +37,7 @@ export const defaultAdminCategoryRelations = [
          */
         {
             requiredAuth: true,
-            path: '/v1/admin/categories',
+            path: '/admin/v1/categories',
             method: 'post',
             handlers: [
                 transformBody(AdminPostCategoryReq),
@@ -50,7 +50,7 @@ export const defaultAdminCategoryRelations = [
          */
         {
             requiredAuth: true,
-            path: '/v1/admin/search-categories',
+            path: '/admin/v1/search-categories',
             method: 'get',
             handlers: [
                 transformQuery(AdminGetCategoryParams, {
@@ -67,7 +67,7 @@ export const defaultAdminCategoryRelations = [
          */
          {
             requiredAuth: true,
-            path: '/v1/admin/categories',
+            path: '/admin/v1/categories',
             method: 'get',
             handlers: [
                 middlewares.authenticate(), 
@@ -79,7 +79,7 @@ export const defaultAdminCategoryRelations = [
          */
         {
             requiredAuth: true,
-            path: '/v1/admin/categories/:id',
+            path: '/admin/v1/categories/:id',
             method: 'get',
             handlers: [
                 middlewares.authenticate(), 
@@ -91,7 +91,7 @@ export const defaultAdminCategoryRelations = [
          */
         {
             requiredAuth: true,
-            path: '/v1/admin/categories/:id',
+            path: '/admin/v1/categories/:id',
             method: 'post',
             handlers: [
                 transformBody(AdminPostCategoryCategoryReq),
@@ -104,7 +104,7 @@ export const defaultAdminCategoryRelations = [
          */
         {
             requiredAuth: true,
-            path: '/v1/admin/categories/:id',
+            path: '/admin/v1/categories/:id',
             method: 'delete',
             handlers: [
                 middlewares.authenticate(),

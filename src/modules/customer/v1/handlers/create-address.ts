@@ -8,7 +8,7 @@ import { validator } from "@medusajs/medusa/dist/utils/validator";
 import { EntityManager } from "typeorm"
 
 /**
- * @oas [post] /customers/me/addresses
+ * @oas [post] /store/v1/customers/me/addresses
  * summary: "Add a Shipping Address"
  * description: "Adds a Shipping Address to a Customer's saved addresses."
  * x-authenticated: true

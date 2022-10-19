@@ -1,17 +1,10 @@
 
 /**
- * @oas [get] /v1/admin/auth/email/{email}
- 
+ * @oas [get] /admin/v1/auth/email/{email}
  * summary: "Check if email exists"
  * description: "Checks if a User with the given email has signed up."
  * parameters:
- *   - in: path
- *     name: email
- *     schema:
- *       type: string
- *       format: email
- *     required: true
- *     description: The email to check if exists.
+ *   - (path) email=* {string} The email to check if exists. 
  * responses:
  *  "200":
  *    description: OK

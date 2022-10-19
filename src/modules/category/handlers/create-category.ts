@@ -1,5 +1,5 @@
 /**
- * @oas [post] /v1/admin/categories
+ * @oas [post] /admin/v1/categories
  * description: "Creates a Category."
  * x-authenticated: true
  * requestBody:
@@ -8,7 +8,7 @@
  *       schema:
  *         required:
  *           - name
- *           - pa
+ *           - parent_id
  *         properties:
  *           name:
  *             description: The name of the category

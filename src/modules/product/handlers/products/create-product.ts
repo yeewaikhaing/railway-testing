@@ -7,7 +7,6 @@ import {
     IsBoolean,
     IsEnum,
     IsNumber,
-    IsObject,
     IsOptional,
     IsString,
     ValidateNested,
@@ -40,10 +39,21 @@ import { validator } from "@medusajs/medusa/dist/utils/validator";
    *       schema:
    *         required:
    *           - title
+   *           - categories
    *         properties:
    *           title:
    *             description: "The title of the Product"
    *             type: string
+   *           categories:
+   *             description: "The category ids of the Product"
+   *             type: array
+   *             items:
+   *                required:
+   *                   - id
+   *                properties:
+    *                 id:
+    *                   description: The ID of an existing category.
+    *                   type: string
    *           subtitle:
    *             description: "The subtitle of the Product"
    *             type: string
@@ -392,6 +402,7 @@ import { validator } from "@medusajs/medusa/dist/utils/validator";
   }
   
   class ProductVariantReq {
+
     @IsString()
     title: string
   
@@ -399,21 +410,21 @@ import { validator } from "@medusajs/medusa/dist/utils/validator";
     @IsOptional()
     sku?: string
   
-    // @IsString()
-    // @IsOptional()
-    // ean?: string
+    @IsString()
+    @IsOptional()
+    ean?: string
   
-    // @IsString()
-    // @IsOptional()
-    // upc?: string
+    @IsString()
+    @IsOptional()
+    upc?: string
   
     @IsString()
     @IsOptional()
     barcode?: string
   
-    // @IsString()
-    // @IsOptional()
-    // hs_code?: string
+    @IsString()
+    @IsOptional()
+    hs_code?: string
   
     @IsNumber()
     @IsOptional()
@@ -443,19 +454,17 @@ import { validator } from "@medusajs/medusa/dist/utils/validator";
     @IsOptional()
     width?: number
 
-    
+    @IsString()
+    @IsOptional()
+    origin_country?: string
   
-    // @IsString()
-    // @IsOptional()
-    // origin_country?: string
+    @IsString()
+    @IsOptional()
+    mid_code?: string
   
-    // @IsString()
-    // @IsOptional()
-    // mid_code?: string
-  
-    // @IsString()
-    // @IsOptional()
-    // material?: string
+    @IsString()
+    @IsOptional()
+    material?: string
   
     // @IsObject()
     // @IsOptional()
@@ -560,21 +569,21 @@ import { validator } from "@medusajs/medusa/dist/utils/validator";
     @IsOptional()
     commission?: number
   
-    // @IsString()
-    // @IsOptional()
-    // hs_code?: string
+    @IsString()
+    @IsOptional()
+    hs_code?: string
   
-    // @IsString()
-    // @IsOptional()
-    // origin_country?: string
+    @IsString()
+    @IsOptional()
+    origin_country?: string
   
-    // @IsString()
-    // @IsOptional()
-    // mid_code?: string
+    @IsString()
+    @IsOptional()
+    mid_code?: string
   
-    // @IsString()
-    // @IsOptional()
-    // material?: string
+    @IsString()
+    @IsOptional()
+    material?: string
   
     
   }

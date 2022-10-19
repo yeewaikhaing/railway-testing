@@ -48,6 +48,16 @@ import {
    *           subtitle:
    *             description: "The subtitle of the Product"
    *             type: string
+   * *           categories:
+   *             description: "The category ids of the Product"
+   *             type: array
+   *             items:
+   *                required:
+   *                   - id
+   *                properties:
+    *                 id:
+    *                   description: The ID of an existing category.
+    *                   type: string
    *           description:
    *             description: "A description of the Product."
    *             type: string

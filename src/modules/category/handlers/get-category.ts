@@ -1,5 +1,5 @@
 /**
- * @oas [get] /v1/admin/categories/{id}
+ * @oas [get] /admin/v1/categories/{id}
  * description: "Retrieves the category."
  * x-authenticated: true
  * parameters:

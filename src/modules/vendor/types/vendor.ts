@@ -8,10 +8,10 @@ import { VendorPaymentTypes } from "../entities/vendorPayment.entity";
  export type CreateVendorInput = {
   nrcno: string
   primary_phone: string
+  default_commission: number
   secondary_phone?: string
   user_id?: string
   payments?: CreateVendorPaymentInput[]
-  
 }
 
 export type CreateVendorPaymentInput = {

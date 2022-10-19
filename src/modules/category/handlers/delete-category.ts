@@ -1,6 +1,6 @@
 
 /**
- * @oas [delete] /v1/admin/categories/{id}
+ * @oas [delete] /admin/v1/categories/{id}
  * description: "Deletes the category."
  * x-authenticated: true
  * parameters:

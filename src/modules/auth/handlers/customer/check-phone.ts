@@ -1,11 +1,10 @@
 
 /**
- * @oas [get] /v1/store/auth/phone/{phone}
+ * @oas [get] /store/v1/auth/phone/{phone}
  * summary: "Check if phone exists"
  * description: "Checks if a Customer with the given phone has signed up."
  * parameters:
- *   - in: path
- *     name: phone
+ *   - (path) phone=* {string} The phone number to check if exists. 
  * responses:
  *  "200":
  *    description: OK

@@ -1,11 +1,9 @@
 
 /**
- * @oas [get] /v1/admin/auth/username/{username}
+ * @oas [get] /v1/admin/auth/username/{user_name}
  * summary: "Check if username exists"
- * description: "Checks if a User with the given username has signed up."
  * parameters:
- *   - in: path
- *     name: username
+ *   - (path) user_name=* {string} The user name to check if exists. 
  * responses:
  *  "200":
  *    description: OK
