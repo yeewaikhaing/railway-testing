@@ -7,7 +7,7 @@ import { PricingService } from './services/pricing.service';
 import { ProductVariantService } from './services/productVariant.service';
 import addStoreIdToProduct1645034402086 from './migrations/product.migration';
 import AttachProductSubscribersMiddleware from './middlewares/product.middleware';
-
+import { AddCommisionToProductMigration1666119864595 } from './migrations/addCommisionToProduct.migration';
 @Module({
     imports: [
       Product,
@@ -18,6 +18,7 @@ import AttachProductSubscribersMiddleware from './middlewares/product.middleware
       ProductVariantService,
       addStoreIdToProduct1645034402086,
       AttachProductSubscribersMiddleware,
+      AddCommisionToProductMigration1666119864595,
     ]
 })
 export class ProductModule {}

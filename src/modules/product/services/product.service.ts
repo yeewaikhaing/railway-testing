@@ -6,10 +6,13 @@ import { Product } from '../entities/product.entity';
 import { User } from '../../user/entities/user.entity';
 import {UserService} from '../../user/services/user.service';
 import { FlagRouter } from '@medusajs/medusa/dist/utils/flag-router';
-import { CreateProductInput } from '../types/product';
+import { 
+  CreateProductInput,
+  FilterableProductProps ,
+  FindProductConfig
+} from '../types/product';
 import { Category } from '../../category/entities/category.entity';
 import {ProductRepository, FindWithoutRelationsOptions} from '../repositories/product.repository';
-import {FindProductConfig} from '../types/product';
 import { buildQuery, isDefined, setMetadata } from "@medusajs/medusa/dist/utils"
 import { Selector } from "@medusajs/medusa/dist/types/common";
 import { MedusaError } from "medusa-core-utils"
@@ -63,6 +66,43 @@ export class ProductService extends MedusaProductService {
 
     }
 
+/**
+   * Lists products based on the provided parameters and includes the count of
+   * products that match the query.
+   * @param selector - an object that defines rules to filter products
+   *   by
+   * @param config - object that defines the scope for what should be
+   *   returned
+   * @return an array containing the products as
+   *   the first element and the total count of products that matches the query
+   *   as the second element.
+   */
+//  async listAndCount(
+//   selector: FilterableProductProps | Selector<Product>,
+//   config: FindProductConfig = {
+//     relations: [],
+//     skip: 0,
+//     take: 20,
+//     include_discount_prices: false,
+//   }
+// ): Promise<[Product[], number]> {
+//   const manager = this.manager_
+//   const productRepo = manager.getCustomRepository(this.container.productRepository);
+
+//   const { q, query, relations } = this.myPrepareListQuery_(selector, config)
+
+//   if (q) {
+//     return await productRepo.getFreeTextSearchResultsAndCount(
+//       q,
+//       query,
+//       relations
+//     )
+//   }
+
+//   return await productRepo.findWithRelationsAndCount(relations, query)
+// }
+
+
     /**
    * Creates a product.
    * @param productObject - the product to create
@@ -97,8 +137,9 @@ export class ProductService extends MedusaProductService {
       }
 
       try {
-        let product = productRepo.create(rest)
-
+        let product = productRepo.create(rest);
+        
+        
         if (images?.length) {
           product.images = await imageRepo.upsertImages(images)
         }
@@ -226,13 +267,55 @@ export class ProductService extends MedusaProductService {
     }
 
     
-    myPrepareListQuery_(selector: object, config: object): object {
-        const loggedInUser = Object.keys(this.container).includes('loggedInUser') ? this.container.loggedInUser : null
-        if (loggedInUser) {
-            selector['store_id'] = loggedInUser.store_id
-        }
+    // myPrepareListQuery_(selector: object, config: object): object {
+    //     const loggedInUser = Object.keys(this.container).includes('loggedInUser') ? this.container.loggedInUser : null
+    //     if (loggedInUser) {
+    //         selector['store_id'] = loggedInUser.store_id
+    //     }
 
-        return super.prepareListQuery_(selector, config);
-    }
+    //     return this.overridePrepareListQuery_(selector, config);
+    // }
+
+    /**
+   * Creates a query object to be used for list queries.
+   * @param selector - the selector to create the query from
+   * @param config - the config to use for the query
+   * @return an object containing the query, relations and free-text
+   *   search param.
+   */
+  // protected overridePrepareListQuery_(
+  //   selector: FilterableProductProps | Selector<Product>,
+  //   config: FindProductConfig
+  // ): {
+  //   q: string
+  //   relations: (keyof Product)[]
+  //   query: FindWithoutRelationsOptions
+  // } {
+  //   let q
+  //   if ("q" in selector) {
+  //     q = selector.q
+  //     delete selector.q
+  //   }
+
+  //   const query = buildQuery(selector, config)
+
+  //   if (config.relations && config.relations.length > 0) {
+  //     query.relations = config.relations
+  //   }
+
+  //   if (config.select && config.select.length > 0) {
+  //     query.select = config.select
+  //   }
+
+  //   const rels = query.relations
+  //   delete query.relations
+
+  //   return {
+  //     query: query as FindWithoutRelationsOptions,
+  //     relations: rels as (keyof Product)[],
+  //     q,
+  //   }
+  // }
+    
 }
 

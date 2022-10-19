@@ -15,33 +15,18 @@ import {
   import { core_response } from "../../../app/coreResponse";
 
 import { MedusaError } from "medusa-core-utils";
-//   import {
-//     PricingService,
-//     ProductService,
-//     ProductVariantService,
-//     ShippingProfileService,
-//   } from "../../../../services"
 import {
-    //PricingService,
-    //ProductService,
-    //ProductVariantService,
     ShippingProfileService,
   } from "@medusajs/medusa/dist/services"
 import { PricingService } from "../../services/pricing.service";
 import { ProductService } from "../../services/product.service";
 import { ProductVariantService } from "../../services/productVariant.service";
 import {ProductTagReq, ProductTypeReq} from "../../types/product" 
-//   import {
-    
-//     ProductTagReq,
-//     ProductTypeReq,
-//   } from "../../../../types/product"
-  import { defaultAdminProductFields, defaultAdminProductRelations } from "../../routers/product.router";
-  
-  import { EntityManager } from "typeorm"
-  import { ProductStatus } from "@medusajs/medusa/dist/models/product"; 
-  import { Type } from "class-transformer"
-  import { validator } from "@medusajs/medusa/dist/utils/validator";
+import { defaultAdminProductFields, defaultAdminProductRelations } from "../../routers/product.router";
+import { EntityManager } from "typeorm"
+import { ProductStatus } from "@medusajs/medusa/dist/models/product"; 
+import { Type } from "class-transformer"
+import { validator } from "@medusajs/medusa/dist/utils/validator";
   
   /**
    * @oas [post] /admin/v1/products
@@ -460,6 +445,8 @@ import {ProductTagReq, ProductTypeReq} from "../../types/product"
     @IsNumber()
     @IsOptional()
     width?: number
+
+    
   
     // @IsString()
     // @IsOptional()
@@ -571,6 +558,10 @@ import {ProductTagReq, ProductTypeReq} from "../../types/product"
     @IsNumber()
     @IsOptional()
     width?: number
+
+    @IsNumber()
+    @IsOptional()
+    commission?: number
   
     // @IsString()
     // @IsOptional()

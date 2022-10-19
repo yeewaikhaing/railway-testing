@@ -16,6 +16,84 @@ import {
 } from "@medusajs/medusa/dist/types/common"
 
 import { PriceListLoadConfig } from "./price-list";
+import {optionalBooleanMapper} from '@medusajs/medusa/dist/utils/validators/is-boolean';
+import {IsType } from '@medusajs/medusa/dist/utils/validators/is-type';
+
+/**
+ * API Level DTOs + Validation rules
+ */
+ export class FilterableProductProps {
+  @IsOptional()
+  @IsType([String, [String]])
+  id?: string | string[]
+
+  @IsString()
+  @IsOptional()
+  q?: string
+
+  @IsOptional()
+  @IsEnum(ProductStatus, { each: true })
+  status?: ProductStatus[]
+
+  @IsArray()
+  @IsOptional()
+  price_list_id?: string[]
+
+  @IsArray()
+  @IsOptional()
+  collection_id?: string[]
+
+  @IsArray()
+  @IsOptional()
+  tags?: string[]
+
+  @IsString()
+  @IsOptional()
+  title?: string
+
+  @IsString()
+  @IsOptional()
+  description?: string
+
+  @IsString()
+  @IsOptional()
+  handle?: string
+
+  @IsBoolean()
+  @IsOptional()
+  @Transform(({ value }) => optionalBooleanMapper.get(value.toLowerCase()))
+  is_giftcard?: boolean
+
+  @IsString()
+  @IsOptional()
+  type?: string
+
+  // @FeatureFlagDecorators(SalesChannelFeatureFlag.key, [
+  //   IsOptional(),
+  //   IsArray(),
+  // ])
+  // sales_channel_id?: string[]
+
+  @IsArray()
+  @IsOptional()
+  categories?: string[]
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => DateComparisonOperator)
+  created_at?: DateComparisonOperator
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => DateComparisonOperator)
+  updated_at?: DateComparisonOperator
+
+  @ValidateNested()
+  @IsOptional()
+  @Type(() => DateComparisonOperator)
+  deleted_at?: DateComparisonOperator
+}
+
 /**
  * Service Level DTOs
  */
@@ -41,6 +119,8 @@ import { PriceListLoadConfig } from "./price-list";
   length?: number
   height?: number
   width?: number
+  commission?: number
+  
   // hs_code?: string
   // origin_country?: string
   // mid_code?: string

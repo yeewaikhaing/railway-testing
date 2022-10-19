@@ -11,6 +11,9 @@ export class Product extends MedusaProduct {
     @Column({ nullable: false })
     store_id: string;
 
+    @Column({ type: 'float', default: 0 })
+    commission: number;
+
     @ManyToOne(() => Store, (store) => store.members)
     @JoinColumn({ name: 'store_id', referencedColumnName: 'id' })
     store: Store;
