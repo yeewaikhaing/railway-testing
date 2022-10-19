@@ -77,30 +77,30 @@ export class ProductService extends MedusaProductService {
    *   the first element and the total count of products that matches the query
    *   as the second element.
    */
-//  async listAndCount(
-//   selector: FilterableProductProps | Selector<Product>,
-//   config: FindProductConfig = {
-//     relations: [],
-//     skip: 0,
-//     take: 20,
-//     include_discount_prices: false,
-//   }
-// ): Promise<[Product[], number]> {
-//   const manager = this.manager_
-//   const productRepo = manager.getCustomRepository(this.container.productRepository);
+ async listAndCount(
+  selector: FilterableProductProps | Selector<Product>,
+  config: FindProductConfig = {
+    relations: [],
+    skip: 0,
+    take: 20,
+    include_discount_prices: false,
+  }
+): Promise<[Product[], number]> {
+  const manager = this.manager_
+  const productRepo = manager.getCustomRepository(this.container.productRepository);
 
-//   const { q, query, relations } = this.myPrepareListQuery_(selector, config)
+  const { q, query, relations } = this.prepareMyListQuery_(selector, config)
 
-//   if (q) {
-//     return await productRepo.getFreeTextSearchResultsAndCount(
-//       q,
-//       query,
-//       relations
-//     )
-//   }
+  if (q) {
+    return await productRepo.getFreeTextSearchResultsAndCount(
+      q,
+      query,
+      relations
+    )
+  }
 
-//   return await productRepo.findWithRelationsAndCount(relations, query)
-// }
+  return await productRepo.findWithRelationsAndCount(relations, query)
+}
 
 
     /**
@@ -267,6 +267,51 @@ export class ProductService extends MedusaProductService {
     }
 
     
+    /**
+   * Creates a query object to be used for list queries.
+   * @param selector - the selector to create the query from
+   * @param config - the config to use for the query
+   * @return an object containing the query, relations and free-text
+   *   search param.
+   */
+  protected prepareMyListQuery_(
+    selector: FilterableProductProps | Selector<Product>,
+    config: FindProductConfig
+  ): {
+    q: string
+    relations: (keyof Product)[]
+    query: FindWithoutRelationsOptions
+  } {
+
+    const loggedInUser = Object.keys(this.container).includes('loggedInUser') ? this.container.loggedInUser : null
+    if (loggedInUser) {
+          selector['store_id'] = loggedInUser.store_id
+      }
+    let q
+    if ("q" in selector) {
+      q = selector.q
+      delete selector.q
+    }
+
+    const query = buildQuery(selector, config)
+
+    if (config.relations && config.relations.length > 0) {
+      query.relations = config.relations
+    }
+
+    if (config.select && config.select.length > 0) {
+      query.select = config.select
+    }
+
+    const rels = query.relations
+    delete query.relations
+
+    return {
+      query: query as FindWithoutRelationsOptions,
+      relations: rels as (keyof Product)[],
+      q,
+    }
+  }
     // myPrepareListQuery_(selector: object, config: object): object {
     //     const loggedInUser = Object.keys(this.container).includes('loggedInUser') ? this.container.loggedInUser : null
     //     if (loggedInUser) {
@@ -276,46 +321,8 @@ export class ProductService extends MedusaProductService {
     //     return this.overridePrepareListQuery_(selector, config);
     // }
 
-    /**
-   * Creates a query object to be used for list queries.
-   * @param selector - the selector to create the query from
-   * @param config - the config to use for the query
-   * @return an object containing the query, relations and free-text
-   *   search param.
-   */
-  // protected overridePrepareListQuery_(
-  //   selector: FilterableProductProps | Selector<Product>,
-  //   config: FindProductConfig
-  // ): {
-  //   q: string
-  //   relations: (keyof Product)[]
-  //   query: FindWithoutRelationsOptions
-  // } {
-  //   let q
-  //   if ("q" in selector) {
-  //     q = selector.q
-  //     delete selector.q
-  //   }
-
-  //   const query = buildQuery(selector, config)
-
-  //   if (config.relations && config.relations.length > 0) {
-  //     query.relations = config.relations
-  //   }
-
-  //   if (config.select && config.select.length > 0) {
-  //     query.select = config.select
-  //   }
-
-  //   const rels = query.relations
-  //   delete query.relations
-
-  //   return {
-  //     query: query as FindWithoutRelationsOptions,
-  //     relations: rels as (keyof Product)[],
-  //     q,
-  //   }
-  // }
+   
+  
     
 }
 

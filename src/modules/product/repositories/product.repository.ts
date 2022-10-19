@@ -35,113 +35,114 @@ export type FindWithoutRelationsOptions = DefaultWithoutRelations & {
 @EntityRepository(Product)
 export  class ProductRepository extends Utils.repositoryMixin<Product, MedusaProductRepository>(MedusaProductRepository) {
 
-  // public async findWithRelationsAndCount(
-  //   relations: string[] = [],
-  //   idsOrOptionsWithoutRelations: FindWithoutRelationsOptions = { where: {} }
-  // ): Promise<[Product[], number]> {
-  //   let count: number
-  //   let entities: Product[]
-  //   if (Array.isArray(idsOrOptionsWithoutRelations)) {
-  //     entities = await this.findByIds(idsOrOptionsWithoutRelations, {
-  //       withDeleted: idsOrOptionsWithoutRelations.withDeleted ?? false,
-  //     })
-  //     count = entities.length
-  //   } else {
-  //     const result = await this.queryProducts_(
-  //       idsOrOptionsWithoutRelations,
-  //       true
-  //     )
-  //     entities = result[0]
-  //     count = result[1]
-  //   }
-  //   const entitiesIds = entities.map(({ id }) => id)
+  public async findWithRelationsAndCount(
+    relations: string[] = [],
+    idsOrOptionsWithoutRelations: FindWithoutRelationsOptions = { where: {} }
+  ): Promise<[Product[], number]> {
+    let count: number
+    let entities: Product[]
+    if (Array.isArray(idsOrOptionsWithoutRelations)) {
+      entities = await this.findByIds(idsOrOptionsWithoutRelations, {
+        withDeleted: idsOrOptionsWithoutRelations.withDeleted ?? false,
+      })
+      count = entities.length
+    } else {
+      const result = await this.queryProducts_(
+        idsOrOptionsWithoutRelations,
+        true
+      )
+      entities = result[0]
+      count = result[1]
+    }
+    const entitiesIds = entities.map(({ id }) => id)
   
-  //   if (entitiesIds.length === 0) {
-  //     // no need to continue
-  //     return [[], count]
-  //   }
+    if (entitiesIds.length === 0) {
+      // no need to continue
+      return [[], count]
+    }
   
-  //   if (relations.length === 0) {
-  //     const toReturn = await this.findByIds(
-  //       entitiesIds,
-  //       idsOrOptionsWithoutRelations
-  //     )
-  //     return [toReturn, toReturn.length]
-  //   }
+    if (relations.length === 0) {
+      const toReturn = await this.findByIds(
+        entitiesIds,
+        idsOrOptionsWithoutRelations
+      )
+      return [toReturn, toReturn.length]
+    }
   
-  //   const groupedRelations = this.getGroupedRelations_(relations)
-  //   const entitiesIdsWithRelations = await this.queryProductsWithIds_(
-  //     entitiesIds,
-  //     groupedRelations,
-  //     idsOrOptionsWithoutRelations.withDeleted,
-  //     idsOrOptionsWithoutRelations.select
-  //   )
+    const groupedRelations = this.getGroupedRelations_(relations)
+    const entitiesIdsWithRelations = await this.queryProductsWithIds_(
+      entitiesIds,
+      groupedRelations,
+      idsOrOptionsWithoutRelations.withDeleted,
+      idsOrOptionsWithoutRelations.select
+    )
   
-  //   const entitiesAndRelations = entitiesIdsWithRelations.concat(entities)
-  //   const entitiesToReturn =
-  //     this.mergeEntitiesWithRelations_(entitiesAndRelations)
+    const entitiesAndRelations = entitiesIdsWithRelations.concat(entities)
+    const entitiesToReturn =
+      this.mergeEntitiesWithRelations_(entitiesAndRelations)
   
-  //   return [entitiesToReturn, count]
-  // }
-  // public async getFreeTextSearchResultsAndCount(
-  //   q: string,
-  //   options: FindWithoutRelationsOptions = { where: {} },
-  //   relations: string[] = []
-  // ): Promise<[Product[], number]> {
-  //   const cleanedOptions = this._myCleanOptions(options)
+    return [entitiesToReturn, count]
+  }
+  
+  public async getFreeTextSearchResultsAndCount(
+    q: string,
+    options: FindWithoutRelationsOptions = { where: {} },
+    relations: string[] = []
+  ): Promise<[Product[], number]> {
+    const cleanedOptions = this._myCleanOptions(options)
 
-  //   let qb = this.createQueryBuilder("product")
-  //     .leftJoinAndSelect("product.variants", "variant")
-  //     .leftJoinAndSelect("product.collection", "collection")
-  //     .select(["product.id"])
-  //     .where(cleanedOptions.where)
-  //     .andWhere(
-  //       new Brackets((qb) => {
-  //         qb.where(`product.description ILIKE :q`, { q: `%${q}%` })
-  //           .orWhere(`product.title ILIKE :q`, { q: `%${q}%` })
-  //           .orWhere(`variant.title ILIKE :q`, { q: `%${q}%` })
-  //           .orWhere(`variant.sku ILIKE :q`, { q: `%${q}%` })
-  //           .orWhere(`collection.title ILIKE :q`, { q: `%${q}%` })
-  //       })
-  //     )
-  //     .skip(cleanedOptions.skip)
-  //     .take(cleanedOptions.take)
+    let qb = this.createQueryBuilder("product")
+      .leftJoinAndSelect("product.variants", "variant")
+      .leftJoinAndSelect("product.collection", "collection")
+      .select(["product.id"])
+      .where(cleanedOptions.where)
+      .andWhere(
+        new Brackets((qb) => {
+          qb.where(`product.description ILIKE :q`, { q: `%${q}%` })
+            .orWhere(`product.title ILIKE :q`, { q: `%${q}%` })
+            .orWhere(`variant.title ILIKE :q`, { q: `%${q}%` })
+            .orWhere(`variant.sku ILIKE :q`, { q: `%${q}%` })
+            .orWhere(`collection.title ILIKE :q`, { q: `%${q}%` })
+        })
+      )
+      .skip(cleanedOptions.skip)
+      .take(cleanedOptions.take)
 
-  //   if (cleanedOptions.withDeleted) {
-  //     qb = qb.withDeleted()
-  //   }
+    if (cleanedOptions.withDeleted) {
+      qb = qb.withDeleted()
+    }
 
-  //   const [results, count] = await qb.getManyAndCount()
+    const [results, count] = await qb.getManyAndCount()
 
-  //   const products = await this.findWithRelations(
-  //     relations,
-  //     results.map((r) => r.id),
-  //     cleanedOptions.withDeleted
-  //   )
+    const products = await this.findWithRelations(
+      relations,
+      results.map((r) => r.id),
+      cleanedOptions.withDeleted
+    )
 
-  //   return [products, count]
-  // }
+    return [products, count]
+  }
 
-  // private _myCleanOptions(
-  //   options: FindWithoutRelationsOptions
-  // ): WithRequiredProperty<FindWithoutRelationsOptions, "where"> {
-  //   const where = options.where ?? {}
-  //   if ("description" in where) {
-  //     delete where.description
-  //   }
-  //   if ("title" in where) {
-  //     delete where.title
-  //   }
+  private _myCleanOptions(
+    options: FindWithoutRelationsOptions
+  ): WithRequiredProperty<FindWithoutRelationsOptions, "where"> {
+    const where = options.where ?? {}
+    if ("description" in where) {
+      delete where.description
+    }
+    if ("title" in where) {
+      delete where.title
+    }
 
-  //   if ("price_list_id" in where) {
-  //     delete where?.price_list_id
-  //   }
+    if ("price_list_id" in where) {
+      delete where?.price_list_id
+    }
 
-  //   return {
-  //     ...options,
-  //     where,
-  //   }
-  // }
+    return {
+      ...options,
+      where,
+    }
+  }
     public async findOneWithRelations(
         relations: string[] = [],
         optionsWithoutRelations: FindWithoutRelationsOptions = { where: {} }

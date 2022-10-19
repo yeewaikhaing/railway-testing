@@ -7,6 +7,7 @@ import middlewares, {
   import { FindParams, PaginatedResponse } from "@medusajs/medusa/dist/types/common";
 import createProduct from '../handlers/products/create-product';
 import getProduct from '../handlers/products/get-product';
+import listProduct, { AdminGetProductsParams } from '../handlers/products/list-product';
 
 export const defaultAdminProductRelations = [
   "variants",
@@ -114,6 +115,24 @@ export const allowedAdminProductFields = [
               middlewares.wrap(getProduct),
           ],
       },
+      /**
+         * List products
+         */
+       {
+        requiredAuth: true,
+        path: '/admin/v1/products',
+        method: 'get',
+        handlers: [
+          transformQuery(AdminGetProductsParams, {
+            defaultRelations: defaultAdminProductRelations,
+            defaultFields: defaultAdminProductFields,
+            allowedFields: allowedAdminProductFields,
+            isList: true,
+          }),
+            middlewares.authenticate(),
+            middlewares.wrap(listProduct),
+        ],
+    },
     ] 
 })
 export class ProductRouter {}
