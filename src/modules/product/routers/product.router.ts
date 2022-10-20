@@ -1,10 +1,9 @@
 import {  Router } from 'medusa-extender';
 import { Product } from '../entities/product.entity';
 import middlewares, {
-    transformBody,
     transformQuery,
   } from '@medusajs/medusa/dist/api/middlewares';
-  import { FindParams, PaginatedResponse } from "@medusajs/medusa/dist/types/common";
+import { FindParams, PaginatedResponse } from "@medusajs/medusa/dist/types/common";
 import createProduct from '../handlers/products/create-product';
 import getProduct from '../handlers/products/get-product';
 import listProduct, { AdminGetProductsParams } from '../handlers/products/list-product';
@@ -16,6 +15,9 @@ import createVariant from '../handlers/products/create-variant';
 import listVariant from '../handlers/products/list-variant';
 import updateVariant from '../handlers/products/update-variant';
 import deleteVariant from '../handlers/products/delete-variant';
+import listType from '../handlers/products/list-type';
+import deleteProduct from '../handlers/products/delete-product';
+import listTagUsageCount from '../handlers/products/list-tag-usage-count';
 
 export const defaultAdminGetProductsVariantsFields = [
   "id", 
@@ -116,6 +118,30 @@ export const allowedAdminProductFields = [
     routes: 
     [
         /**
+         * List Product types
+         */
+        {
+            requiredAuth: true,
+            path: '/admin/v1/products/types',
+            method: 'get',
+            handlers: [
+                middlewares.authenticate(), 
+                middlewares.wrap(listType),
+            ],
+        },
+          /**
+           * List Product Tag
+          */
+         {
+              requiredAuth: true,
+              path: '/admin/v1/products/tag-usage',
+              method: 'get',
+              handlers: [
+                  middlewares.authenticate(), 
+                  middlewares.wrap(listTagUsageCount),
+              ],
+          },
+        /**
          * create a new product
          */
          {
@@ -145,9 +171,9 @@ export const allowedAdminProductFields = [
               middlewares.wrap(getProduct),
           ],
       },
-      /**
-       * List products
-       */
+        /**
+        * List products
+        */
        {
         requiredAuth: true,
         path: '/admin/v1/products',
@@ -173,6 +199,18 @@ export const allowedAdminProductFields = [
         handlers: [
             middlewares.authenticate(), // authentication is required
             middlewares.wrap(updateProduct),
+        ],
+      },
+      /**
+      * Delete a  product
+      */
+      {
+        requiredAuth: true,
+        path: '/admin/v1/products/:id',
+        method: 'delete',
+        handlers: [
+            middlewares.authenticate(),
+            middlewares.wrap(deleteProduct),
         ],
       },
       /**
@@ -259,6 +297,7 @@ export const allowedAdminProductFields = [
                 middlewares.wrap(deleteVariant),
             ],
         },
+        
         
     ] 
 })
