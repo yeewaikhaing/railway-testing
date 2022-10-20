@@ -18,6 +18,7 @@ import {
 import { PriceListLoadConfig } from "./price-list";
 import {optionalBooleanMapper} from '@medusajs/medusa/dist/utils/validators/is-boolean';
 import {IsType } from '@medusajs/medusa/dist/utils/validators/is-type';
+import { ProductOptionValue } from "@medusajs/medusa/dist/models/product-option-value";
 
 /**
  * API Level DTOs + Validation rules
@@ -228,4 +229,10 @@ export class ProductTagReq {
     @IsString()
     id: string
   }
+
   export type FindProductConfig = FindConfig<Product> & PriceListLoadConfig
+
+  export type ProductOptionInput = {
+    title: string
+    values?: ProductOptionValue[]
+  }

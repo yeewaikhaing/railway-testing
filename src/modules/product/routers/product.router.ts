@@ -9,6 +9,9 @@ import createProduct from '../handlers/products/create-product';
 import getProduct from '../handlers/products/get-product';
 import listProduct, { AdminGetProductsParams } from '../handlers/products/list-product';
 import updateProduct from '../handlers/products/update-product';
+import addOption from '../handlers/products/add-option';
+import updateOption from '../handlers/products/update-option';
+import deleteOption from '../handlers/products/delete-option';
 
 export const defaultAdminProductRelations = [
   "variants",
@@ -138,14 +141,50 @@ export const allowedAdminProductFields = [
      * Update a  product
      */
      {
-      requiredAuth: true,
-      path: '/admin/v1/products/:id',
-      method: 'post',
-      handlers: [
-          middlewares.authenticate(), // authentication is required
-          middlewares.wrap(updateProduct),
-      ],
-  },
+        requiredAuth: true,
+        path: '/admin/v1/products/:id',
+        method: 'post',
+        handlers: [
+            middlewares.authenticate(), // authentication is required
+            middlewares.wrap(updateProduct),
+        ],
+      },
+      /**
+       * Add an option
+       */
+        {
+          requiredAuth: true,
+          path: '/admin/v1/products/:id/options',
+          method: 'post',
+          handlers: [
+              middlewares.authenticate(), 
+              middlewares.wrap(addOption),
+          ],
+        },
+        /**
+         * Update an option
+         */
+         {
+          requiredAuth: true,
+          path: '/admin/v1/products/:id/options/:option_id',
+          method: 'post',
+          handlers: [
+              middlewares.authenticate(), 
+              middlewares.wrap(updateOption),
+          ],
+        },
+        /**
+         * Delete an option
+         */
+        {
+          requiredAuth: true,
+          path: '/admin/v1/products/:id/options/:option_id',
+          method: 'delete',
+          handlers: [
+              middlewares.authenticate(), 
+              middlewares.wrap(deleteOption),
+          ],
+        },
     ] 
 })
 export class ProductRouter {}

@@ -10,7 +10,8 @@ import {
   CreateProductInput,
   FilterableProductProps ,
   FindProductConfig,
-  UpdateProductInput
+  UpdateProductInput,
+  ProductOptionInput
 } from '../types/product';
 import { Category } from '../../category/entities/category.entity';
 import {ProductRepository, FindWithoutRelationsOptions} from '../repositories/product.repository';
@@ -67,6 +68,185 @@ export class ProductService extends MedusaProductService {
         
 
     }
+
+  /**
+   * Delete an option from a product.
+   * @param productId - the product to delete an option from
+   * @param optionId - the option to delete
+   * @return the updated product
+   */
+   async deleteOption(
+    productId: string,
+    optionId: string
+  ): Promise<Product | void> {
+    return await this.atomicPhase_(async (manager) => {
+      const productOptionRepo = manager.getCustomRepository(
+        this.productOptionRepository_
+      )
+
+      const product = await this.retrieve(productId, {
+        relations: ["variants", "variants.options"],
+      })
+
+      const productOption = await productOptionRepo.findOne({
+        where: { id: optionId, product_id: productId },
+      })
+
+      if (!productOption) {
+        return Promise.resolve()
+      }
+
+      // In case the product does not contain variants, we can safely delete the option
+      // If it does contain variants, we need to make sure no variant exist for the
+      // product option to delete
+      if (product?.variants?.length) {
+        // For the option we want to delete, make sure that all variants have the
+        // same option values. The reason for doing is, that we want to avoid
+        // duplicate variants. For example, if we have a product with size and
+        // color options, that has four variants: (black, 1), (black, 2),
+        // (blue, 1), (blue, 2) and we delete the size option from the product,
+        // we would end up with four variants: (black), (black), (blue), (blue).
+        // We now have two duplicate variants. To ensure that this does not
+        // happen, we will force the user to select which variants to keep.
+        const firstVariant = product.variants[0]
+
+        const valueToMatch = firstVariant.options.find(
+          (o) => o.option_id === optionId
+        )?.value
+
+        const equalsFirst = await Promise.all(
+          product.variants.map(async (v) => {
+            const option = v.options.find((o) => o.option_id === optionId)
+            return option?.value === valueToMatch
+          })
+        )
+
+        if (!equalsFirst.every((v) => v)) {
+          throw new MedusaError(
+            MedusaError.Types.INVALID_DATA,
+            `To delete an option, first delete all variants, such that when an option is deleted, no duplicate variants will exist.`
+          )
+        }
+      }
+
+      // If we reach this point, we can safely delete the product option
+      await productOptionRepo.softRemove(productOption)
+
+      await this.eventBus_
+        .withTransaction(manager)
+        .emit(ProductService.Events.UPDATED, product)
+      return product
+    })
+  }
+
+     /**
+   * Updates a product's option. Throws if the call tries to update an option
+   * not associated with the product. Throws if the updated title already exists.
+   * @param productId - the product whose option we are updating
+   * @param optionId - the id of the option we are updating
+   * @param data - the data to update the option with
+   * @return the updated product
+   */
+  async updateOption(
+    productId: string,
+    optionId: string,
+    data: ProductOptionInput
+  ): Promise<Product> {
+    return await this.atomicPhase_(async (manager) => {
+      const productOptionRepo = manager.getCustomRepository(
+        this.productOptionRepository_
+      )
+
+      const product = await this.retrieve(productId, { relations: ["options"] })
+
+      const { title, values } = data
+
+      const optionExists = product.options.some(
+        (o) =>
+          o.title.toUpperCase() === title.toUpperCase() && o.id !== optionId
+      )
+      if (optionExists) {
+        throw new MedusaError(
+          MedusaError.Types.NOT_FOUND,
+          `An option with title ${title} already exists`
+        )
+      }
+
+      const productOption = await productOptionRepo.findOne({
+        where: { id: optionId },
+      })
+
+      if (!productOption) {
+        throw new MedusaError(
+          MedusaError.Types.NOT_FOUND,
+          `Option with id: ${optionId} does not exist`
+        )
+      }
+
+      productOption.title = title
+      if (values) {
+        productOption.values = values
+      }
+
+      await productOptionRepo.save(productOption)
+
+      await this.eventBus_
+        .withTransaction(manager)
+        .emit(ProductService.Events.UPDATED, product)
+      return product
+    })
+  }
+
+    /**
+   * Adds an option to a product. Options can, for example, be "Size", "Color",
+   * etc. Will update all the products variants with a dummy value for the newly
+   * created option. The same option cannot be added more than once.
+   * @param productId - the product to apply the new option to
+   * @param optionTitle - the display title of the option, e.g. "Size"
+   * @return the result of the model update operation
+   */
+  async addOption(productId: string, optionTitle: string): Promise<Product> {
+    return await this.atomicPhase_(async (manager) => {
+      const productOptionRepo = manager.getCustomRepository(
+        this.productOptionRepository_
+      )
+
+      const product = await this.retrieve(productId, {
+        relations: ["options", "variants"],
+      })
+
+      if (product.options.find((o) => o.title === optionTitle)) {
+        throw new MedusaError(
+          MedusaError.Types.DUPLICATE_ERROR,
+          `An option with the title: ${optionTitle} already exists`
+        )
+      }
+
+      const option = productOptionRepo.create({
+        title: optionTitle,
+        product_id: productId,
+      })
+
+      await productOptionRepo.save(option)
+
+      const productVariantServiceTx =
+        this.productVariantService_.withTransaction(manager)
+      for (const variant of product.variants) {
+        await productVariantServiceTx.addOptionValue(
+          variant.id,
+          option.id,
+          "Default Value"
+        )
+      }
+
+      const result = await this.retrieve(productId)
+
+      await this.eventBus_
+        .withTransaction(manager)
+        .emit(ProductService.Events.UPDATED, result)
+      return result
+    })
+  }
 
 /**
    * Updates a product. Product variant updates should use dedicated methods,

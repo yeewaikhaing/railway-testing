@@ -1,17 +1,18 @@
 import { defaultAdminProductFields, defaultAdminProductRelations } from "../../routers/product.router";
 import { IsString } from "class-validator"
+import { ProductService } from "../../services/product.service"
 import { validator } from "@medusajs/medusa/dist/utils/validator";
 import { EntityManager } from "typeorm"
-import { PricingService } from "../../services/pricing.service";
-import { ProductService } from "../../services/product.service";
+
 /**
- * @oas [post] /admin/v1/products/{id}/options
- * operationId: "PostProductsProductOptions"
- * summary: "Add an Option"
+ * @oas [post] /admin/v1/products/{id}/options/{option_id}
+ * operationId: "PostProductsProductOptionsOption"
+ * summary: "Update a Product Option"
+ * description: "Updates a Product Option"
  * x-authenticated: true
- * description: "Adds a Product Option to a Product"
  * parameters:
  *   - (path) id=* {string} The ID of the Product.
+ *   - (path) option_id=* {string} The ID of the Product Option.
  * requestBody:
  *   content:
  *     application/json:
@@ -20,7 +21,7 @@ import { ProductService } from "../../services/product.service";
  *           - title
  *         properties:
  *           title:
- *             description: "The title the Product Option will be identified by i.e. \"Size\""
+ *             description: "The title of the Product Option"
  *             type: string
  * x-codeSamples:
  *   - lang: JavaScript
@@ -29,7 +30,7 @@ import { ProductService } from "../../services/product.service";
  *       import Medusa from "@medusajs/medusa-js"
  *       const medusa = new Medusa({ baseUrl: MEDUSA_BACKEND_URL, maxRetries: 3 })
  *       // must be previously logged in or use api token
- *       medusa.admin.products.addOption(product_id, {
+ *       medusa.admin.products.updateOption(product_id, option_id, {
  *         title: 'Size'
  *       })
  *       .then(({ product }) => {
@@ -38,7 +39,7 @@ import { ProductService } from "../../services/product.service";
  *   - lang: Shell
  *     label: cURL
  *     source: |
- *       curl --location --request POST 'https://medusa-url.com/admin/products/{id}/options' \
+ *       curl --location --request POST 'https://medusa-url.com/admin/products/{id}/options/{option_id}' \
  *       --header 'Authorization: Bearer {api_token}' \
  *       --header 'Content-Type: application/json' \
  *       --data-raw '{
@@ -72,34 +73,31 @@ import { ProductService } from "../../services/product.service";
  *     $ref: "#/components/responses/500_error"
  */
 export default async (req, res) => {
-  const { id } = req.params
+  const { id, option_id } = req.params
 
   const validated = await validator(
-    AdminPostProductsProductOptionsReq,
+    AdminPostProductsProductOptionsOption,
     req.body
   )
 
   const productService: ProductService = req.scope.resolve(ProductService.resolutionKey);
-  const pricingService: PricingService = req.scope.resolve(PricingService.resolutionKey);
 
   const manager: EntityManager = req.scope.resolve("manager")
   await manager.transaction(async (transactionManager) => {
     return await productService
       .withTransaction(transactionManager)
-      .addOption(id, validated.title)
+      .updateOption(id, option_id, validated)
   })
 
-  const rawProduct = await productService.retrieve(id, {
+  const product = await productService.retrieve(id, {
     select: defaultAdminProductFields,
     relations: defaultAdminProductRelations,
   })
 
-  const [product] = await pricingService.setProductPrices([rawProduct])
-
   res.json({ product })
 }
 
-export class AdminPostProductsProductOptionsReq {
+export class AdminPostProductsProductOptionsOption {
   @IsString()
   title: string
 }
