@@ -12,6 +12,32 @@ import updateProduct from '../handlers/products/update-product';
 import addOption from '../handlers/products/add-option';
 import updateOption from '../handlers/products/update-option';
 import deleteOption from '../handlers/products/delete-option';
+import createVariant from '../handlers/products/create-variant';
+import listVariant from '../handlers/products/list-variant';
+import updateVariant from '../handlers/products/update-variant';
+import deleteVariant from '../handlers/products/delete-variant';
+
+export const defaultAdminGetProductsVariantsFields = [
+  "id", 
+  "product_id",
+  "prices",
+  "sku",
+  "barcode",
+  "ean",
+  "upc",
+  "variant_rank",
+  "inventory_quantity",
+  "allow_backorder",
+  "manage_inventory",
+  "hs_code",
+  "origin_country",
+  "mid_code",
+  "material",
+  "weight",
+  "length",
+  "height",
+  "width",
+]
 
 export const defaultAdminProductRelations = [
   "variants",
@@ -44,10 +70,10 @@ export const defaultAdminProductFields: (keyof Product)[] = [
   "length",
   "height",
   "width",
-  // "hs_code",
-  // "origin_country",
-  // "mid_code",
-  // "material",
+  "hs_code",
+  "origin_country",
+  "mid_code",
+  "material",
   "created_at",
   "updated_at",
   "deleted_at",
@@ -74,10 +100,10 @@ export const allowedAdminProductFields = [
   "length",
   "height",
   "width",
-  // "hs_code",
-  // "origin_country",
-  // "mid_code",
-  // "material",
+  "hs_code",
+  "origin_country",
+  "mid_code",
+  "material",
   "created_at",
   "updated_at",
   "deleted_at",
@@ -97,7 +123,7 @@ export const allowedAdminProductFields = [
             path: '/admin/v1/products',
             method: 'post',
             handlers: [
-                middlewares.authenticate(), // authentication is required
+                middlewares.authenticate(), 
                 middlewares.wrap(createProduct),
             ],
         },
@@ -185,6 +211,55 @@ export const allowedAdminProductFields = [
               middlewares.wrap(deleteOption),
           ],
         },
+        /**
+         * Create a product variant
+         */
+        {
+          requiredAuth: true,
+          path: '/admin/v1/products/:id/variants',
+          method: 'post',
+          handlers: [
+              middlewares.authenticate(), 
+              middlewares.wrap(createVariant),
+          ],
+        },
+        /**
+         * List product variants by product id
+         */
+         {
+            requiredAuth: true,
+            path: '/admin/v1/products/:id/variants',
+            method: 'get',
+            handlers: [
+                middlewares.authenticate(), 
+                middlewares.wrap(listVariant),
+            ],
+        },
+        /**
+         * Update a product variant
+         */
+         {
+            requiredAuth: true,
+            path: '/admin/v1/products/:id/variants/:variant_id',
+            method: 'post',
+            handlers: [
+                middlewares.authenticate(), 
+                middlewares.wrap(updateVariant),
+            ],
+        },
+        /**
+         * Delete a product variant
+         */
+         {
+            requiredAuth: true,
+            path: '/admin/v1/products/:id/variants/:variant_id',
+            method: 'delete',
+            handlers: [
+                middlewares.authenticate(), 
+                middlewares.wrap(deleteVariant),
+            ],
+        },
+        
     ] 
 })
 export class ProductRouter {}

@@ -3,7 +3,11 @@ import { ProductVariantService as MedusaProductVariantService } from '@medusajs/
       import { Service } from 'medusa-extender';
       import { EntityManager } from 'typeorm';
 import {ProductRepository} from '../repositories/product.repository';
-      
+//  import { Product } from '../entities/product.entity';
+//  import { ProductVariant } from '@medusajs/medusa/dist/models/product-variant';
+// import { CreateProductVariantInput } from '../types/product-variant';
+// import { MedusaError } from "medusa-core-utils";
+
 type InjectedDependencies = {
     manager: EntityManager;
     productVariantRepository,
@@ -28,4 +32,7 @@ export class ProductVariantService extends MedusaProductVariantService {
         this.manager = container.manager;
         this.container = container;
     }
+
+   
+
 }
