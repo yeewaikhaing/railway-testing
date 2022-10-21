@@ -74,7 +74,7 @@ export default async (req: Request, res: Response) => {
 
   const queryConfig = getRetrieveConfig<ProductVariant>(
     defaultAdminGetProductsVariantsFields as (keyof ProductVariant)[],
-    ["options"],
+    ["options", "prices"],
     [
       ...new Set([
         ...defaultAdminGetProductsVariantsFields,
