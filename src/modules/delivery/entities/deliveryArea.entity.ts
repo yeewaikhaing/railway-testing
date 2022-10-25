@@ -4,13 +4,15 @@ import {
     BeforeInsert,
     ManyToOne,
     Index,
-    JoinColumn
+    JoinColumn,
+    OneToMany
 } from "typeorm"; 
 import { Entity as MedusaEntity } from "medusa-extender";
 import { SoftDeletableEntity } from "@medusajs/medusa";
 import { generateEntityId } from "@medusajs/medusa/dist/utils";
 import { City } from "./city.entity";
 import { PriceGroup } from "../../priceGroup/priceGroup.entity";
+import { Address } from "../../customer/v1/entities/address.entity";
 
 @MedusaEntity()
 @Entity()
@@ -32,6 +34,9 @@ export class DeliveryArea extends SoftDeletableEntity{
     @ManyToOne(() => PriceGroup, (pricing: PriceGroup) => pricing.areas)//, {eager:true} 
     @JoinColumn({name: 'pricing_id'})
     priceGroup: PriceGroup;
+
+    @OneToMany(() => Address, (address: Address) => address.delivery_area)
+    addresses: Address[];
 
     @BeforeInsert()
     private beforeInsert(): void {
