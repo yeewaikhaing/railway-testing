@@ -35,8 +35,8 @@ export class DeliveryArea extends SoftDeletableEntity{
     @JoinColumn({name: 'pricing_id'})
     priceGroup: PriceGroup;
 
-    @OneToMany(() => Address, (address: Address) => address.delivery_area)
-    addresses: Address[];
+    // @OneToMany(() => Address, (address: Address) => address.delivery_area)
+    // addresses: Address[];
 
     @BeforeInsert()
     private beforeInsert(): void {

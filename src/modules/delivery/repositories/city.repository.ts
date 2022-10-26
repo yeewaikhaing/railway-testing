@@ -1,9 +1,8 @@
 import { Repository as MedusaRepository } from "medusa-extender";
-import { EntityRepository, Repository,FindManyOptions,Brackets } from "typeorm";
+import { EntityRepository, Repository,FindManyOptions } from "typeorm";
 import { City } from "../entities/city.entity";
 
 import { flatten, groupBy, merge } from "lodash";
-import {  Selector,ExtendedFindConfig } from "@medusajs/medusa/dist/types/common";
 
 
 @MedusaRepository()

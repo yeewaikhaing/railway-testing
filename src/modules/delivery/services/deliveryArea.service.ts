@@ -3,7 +3,11 @@ import { Service } from 'medusa-extender';
 import { EntityManager } from 'typeorm';
 import { EventBusService, TransactionBaseService } from "@medusajs/medusa";
 import { DeliveryAreaRepository } from '../repositories/deliveryArea.repository';
-      
+import { DeliveryArea } from '../entities/deliveryArea.entity';
+import { FindConfig, Selector } from "@medusajs/medusa/dist/types/common";
+import {buildQuery} from "@medusajs/medusa/dist/utils";
+import { MedusaError } from "medusa-core-utils"
+    
 type InjectedDependencies = {
     manager: EntityManager;
     deliveryAreaRepository: typeof DeliveryAreaRepository;
@@ -75,6 +79,58 @@ export class DeliveryAreaService extends TransactionBaseService {
      
       
     })
+  }
+
+  /**
+   * Gets a delivery area by id.
+   * Throws in case of DB Error and if city was not found.
+   * @param area_id - id of the area to get.
+   * @param config - object that defines what should be included in the
+   *   query response
+   * @return the result of the find one operation.
+   */
+   async retrieve(
+    area_id: string,
+    config: FindConfig<DeliveryArea> = {}
+  ): Promise<DeliveryArea> {
+    return await this.retrieve_({ id: area_id }, config)
+  }
+
+  /**
+   * Gets a Delivery Area by selector.
+   * Throws in case of DB Error and if area was not found.
+   * @param selector - selector object
+   * @param config - object that defines what should be included in the
+   *   query response
+   * @return the result of the find one operation.
+   */
+   async retrieve_(
+    selector: Selector<DeliveryArea>,
+    config: FindConfig<DeliveryArea> = {}
+  ): Promise<DeliveryArea> {
+    const manager = this.manager_
+    const areaRepo = manager.getCustomRepository(this.deliveryAreaRepository_)
+
+    const { relations, ...query } = buildQuery(selector, config)
+
+    const area = await areaRepo.findOneWithRelations(
+      relations as (keyof DeliveryArea)[],
+      query
+    )
+    
+
+    if (!area) {
+      const selectorConstraints = Object.entries(selector)
+        .map(([key, value]) => `${key}: ${value}`)
+        .join(", ")
+      
+      throw new MedusaError(
+        MedusaError.Types.NOT_FOUND,
+        `Delivery Area with ${selectorConstraints} was not found`
+      )
+    }
+
+    return area;
   }
 
 }

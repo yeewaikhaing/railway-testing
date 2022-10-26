@@ -6,10 +6,12 @@ import { EntityManager } from 'typeorm';
 import {CustomerRepository} from "../repositories/customer.repository";
 import EventBusService from '@medusajs/medusa/dist/services/event-bus';
 import { Customer} from "../entities/customer.entity";
-import { AddressRepository} from "@medusajs/medusa/dist/repositories/address";
+import { AddressRepository} from "../repositories/address.repository";
 import { CreateCustomerInput } from "../types/customer";
+import { AddressCreatePayload } from '../types/address';
 import { FindConfig, Selector } from "@medusajs/medusa/dist/types/common";
 import {buildQuery} from "@medusajs/medusa/dist/utils";
+import { Address } from "../entities/address.entity";
 
 type InjectedDependencies = {
     manager: EntityManager;
@@ -36,7 +38,109 @@ export class CustomerService extends MedusaCustomerService {
         this.eventBus = container.eventBusService;
        this.addressRepository = container.addressRepository;
     }
-    
+  
+    async updateMyAddress(
+      customerId: string,
+      addressId: string,
+      address: AddressCreatePayload
+    ): Promise<Address> {
+      return await this.atomicPhase_(async (manager) => {
+        const addressRepo = manager.getCustomRepository(this.addressRepository)
+  
+       // address.country_code = address.country_code?.toLowerCase()
+  
+        const toUpdate = await addressRepo.findOne({
+          where: { id: addressId, customer_id: customerId },
+        })
+  
+        if (!toUpdate) {
+          throw new MedusaError(
+            MedusaError.Types.INVALID_DATA,
+            "Could not find address for customer"
+          )
+        }
+        for (const [key, value] of Object.entries(address)) {
+          toUpdate[key] = value
+        }
+  
+        return addressRepo.save(toUpdate)
+      })
+    }
+  
+    async removeAddress(customerId: string, addressId: string): Promise<void> {
+      return await this.atomicPhase_(async (manager) => {
+        const addressRepo = manager.getCustomRepository(this.addressRepository)
+  
+        // Should not fail, if user does not exist, since delete is idempotent
+        const address = await addressRepo.findOne({
+          where: { id: addressId, customer_id: customerId },
+        })
+  
+        if (!address) {
+          return
+        }
+  
+        await addressRepo.softRemove(address)
+      })
+    }
+  
+    async addAddress(
+      customerId: string,
+      address: AddressCreatePayload
+    ): Promise<Customer | Address> {
+      return await this.atomicPhase_(async (manager) => {
+        const addressRepository = manager.getCustomRepository(
+          this.addressRepository
+        )
+  
+        //address.country_code = address.country_code.toLowerCase()
+  
+        // const customer = await this.retrieve(customerId, {
+        //   relations: ["shipping_addresses"],
+        // })
+        const customer = await this.retrieve(customerId, {
+          relations: ["addresses"],
+        })
+  
+        // const shouldAdd = !customer.shipping_addresses.find(
+        //   (a) =>
+        //     a.country_code?.toLowerCase() ===
+        //       address.country_code.toLowerCase() &&
+        //     a.address_1 === address.address_1 &&
+        //     a.address_2 === address.address_2 &&
+        //     a.city === address.city &&
+        //     a.phone === address.phone &&
+        //     a.postal_code === address.postal_code &&
+        //     a.province === address.province &&
+        //     a.first_name === address.first_name &&
+        //     a.last_name === address.last_name
+        // )
+
+        const shouldAdd = !customer.addresses.find(
+          (a) =>
+            a.address_1 === address.address_1 &&
+            a.address_2 === address.address_2 &&
+            a.city === address.city &&
+            a.phone === address.phone &&
+            a.postal_code === address.postal_code &&
+            a.province === address.province &&
+            a.first_name === address.first_name &&
+            a.last_name === address.last_name
+        )
+  
+        if (shouldAdd) {
+          const created = addressRepository.create({
+            ...address,
+            customer_id: customerId,
+          })
+          const result = await addressRepository.save(created)
+          return result
+        } else {
+          return customer
+        }
+      })
+    }
+  
     /**
    * Generate a JSON Web token, that will be sent to a customer, that wishes to
    * reset password.

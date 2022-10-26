@@ -1,4 +1,6 @@
 import { Module } from 'medusa-extender';
+import { AddressRepository } from './v1/repositories/address.repository';
+
 import { CustomizeAddressMigration1666686978988 } from './v1/migrations/customizeAddress.migration';
 import { Address } from './v1/entities/address.entity';
 import { CustomerService } from './v1/services/customer.service';
@@ -16,6 +18,6 @@ import { Customer } from './v1/entities/customer.entity';
         CustomerService, 
         Address, 
         CustomizeAddressMigration1666686978988,
-      ]
+      AddressRepository]
 })
 export class CustomerModule {}

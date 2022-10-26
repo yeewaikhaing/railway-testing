@@ -6,6 +6,9 @@ import createCustomer from '../handlers/create-customer';
 import getCustomer from '../handlers/get-customer';
 import passwordResetToken from '../handlers/password-reset-token';
 import resetPassword from '../handlers/reset-password';
+import createAddress from '../handlers/create-address';
+import deleteAddress from '../handlers/delete-address';
+import updateAddress from '../handlers/update-address';
 
 @Router({
     routes: 
@@ -55,7 +58,43 @@ import resetPassword from '../handlers/reset-password';
                 wrapHandler(resetPassword)
             ],
         },
-] 
+        /**
+         * Create an address
+         */
+         {
+            requiredAuth: true,
+            path: '/store/v1/customers/me/addresses',
+            method: 'post',
+            handlers: [
+                middlewares.authenticate(),
+                middlewares.wrap(createAddress)
+            ],
+        },
+         /**
+         * Delete an address
+         */
+          {
+            requiredAuth: true,
+            path: '/store/v1/customers/me/addresses/:address_id',
+            method: 'delete',
+            handlers: [
+                middlewares.authenticate(),
+                middlewares.wrap(deleteAddress)
+            ],
+        }, 
+        /**
+         * Update an address
+         */
+         {
+            requiredAuth: true,
+            path: '/store/v1/customers/me/addresses/:address_id',
+            method: 'post',
+            handlers: [
+                middlewares.authenticate(),
+                middlewares.wrap(updateAddress)
+            ],
+        },
+    ] 
 })
 export class CustomerRouter {}
 
@@ -64,7 +103,7 @@ export const defaultStoreCustomersFields: (keyof Customer)[] = [
     "email",
     "first_name",
     "last_name",
-    "billing_address_id",
+    //"billing_address_id",
     "phone",
     "user_name",
     "email_verified_at",
@@ -78,7 +117,10 @@ export const defaultStoreCustomersFields: (keyof Customer)[] = [
     "join_date"
   ]
 
-  export const defaultStoreCustomersRelations = [
-    "shipping_addresses",
-    "billing_address",
-  ]
+//   export const defaultStoreCustomersRelations = [
+//     "shipping_addresses",
+//     "billing_address",
+//   ]
+export const defaultStoreCustomersRelations = [
+    "addresses",
+]
