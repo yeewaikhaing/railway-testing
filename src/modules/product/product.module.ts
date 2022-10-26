@@ -1,4 +1,6 @@
 import { Module } from 'medusa-extender';
+import { SearchService } from './services/search.service';
+import { StorefrontProductRouter } from './routers/StorefrontProduct.router';
 import { ProductVariantRouter } from './routers/productVariant.router';
 import { ProductTypeRouter } from './routers/productType.router';
 //import { ProductSubscriber } from './subscribers/product.subscriber';
@@ -29,6 +31,8 @@ import { AddCommisionToProductMigration1666119864595 } from './migrations/addCom
      //ProductSubscriber, 
      ProductTypeRouter,
      ProductVariantRouter,
-    ]
+    StorefrontProductRouter, 
+   // SearchService
+  ]
 })
 export class ProductModule {}
