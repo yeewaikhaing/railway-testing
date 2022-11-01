@@ -13,7 +13,7 @@ import { DiscountRuleRepository } from "../repositories/discountRule.repository"
 import { GiftCardRepository } from "@medusajs/medusa/dist/repositories/gift-card";
 import { DiscountConditionRepository } from "../repositories/discountCondition.repository";
 import {DiscountConditionService} from "./discountCondition.service";
-import { EventBusService, RegionService, TotalsService } from "@medusajs/medusa/dist/services";
+import { EventBusService, TotalsService } from "@medusajs/medusa/dist/services";
 import { ProductService } from "../../product/services/product.service";
 import { FlagRouter } from "@medusajs/medusa/dist/utils/flag-router";
 import { Discount } from "../entities/discount.entity";
@@ -23,6 +23,7 @@ import { isEmpty, omit } from "lodash"
 import { FindConfig, Selector } from "@medusajs/medusa/dist/types/common"
 import { MedusaError } from "medusa-core-utils"
 import { Region } from "@medusajs/medusa/dist/models/region";
+import { RegionService } from "../../region/services/region.service";
 
 type InjectedDependencies = {
     manager: EntityManager;
@@ -34,7 +35,7 @@ type InjectedDependencies = {
     discountConditionService: typeof DiscountConditionService;
     totalsService: typeof TotalsService;
     productService: typeof ProductService;
-    regionService: typeof RegionService;
+    regionService:  RegionService;
     eventBusService: typeof EventBusService;
     featureFlagRouter: typeof FlagRouter
 };
@@ -46,13 +47,50 @@ export class DiscountService extends MedusaDiscountService {
     private readonly container: InjectedDependencies;
     private readonly manager: EntityManager;
     private readonly discountConditionService: typeof DiscountConditionService;
+    //private readonly regionService:  RegionService;
 
     constructor(container: InjectedDependencies) {
         super(container);
         this.manager = container.manager;
         this.container = container;
+       // this.regionService = container.regionService;
         this.discountConditionService = container.discountConditionService;
     }
+
+    /**
+   * Adds a region to the discount regions array.
+   * @param {string} discountId - id of discount
+   * @param {string} regionId - id of region to add
+   * @return {Promise} the result of the update operation
+   */
+  async addRegion(discountId: string, regionId: string): Promise<Discount> {
+    return await this.atomicPhase_(async (manager) => {
+      const discountRepo = manager.getCustomRepository(this.container.discountRepository)
+
+      const discount = await this.retrieve(discountId, {
+        relations: ["regions", "rule"],
+      })
+
+      const exists = discount.regions.find((r) => r.id === regionId)
+      // If region is already present, we return early
+      if (exists) {
+        return discount
+      }
+
+      if (discount.regions?.length === 1 && discount.rule.type === "fixed") {
+        throw new MedusaError(
+          MedusaError.Types.INVALID_DATA,
+          "Fixed discounts can have one region"
+        )
+      }
+
+      const region = await this.container.regionService.retrieve(regionId)
+
+      discount.regions = [...discount.regions, region]
+
+      return await discountRepo.save(discount)
+    })
+  }
 
 /**
    * Gets a discount by id.
