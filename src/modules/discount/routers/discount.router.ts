@@ -1,21 +1,49 @@
 import { MedusaAuthenticatedRequest, Router } from 'medusa-extender';
-import { UserService } from "@medusajs/medusa/dist/services";
-import { Response, NextFunction } from "express";
-import { User } from "@medusajs/medusa/dist";
-
+import wrapHandler from '@medusajs/medusa/dist/api/middlewares/await-middleware';
+import middlewares from '@medusajs/medusa/dist/api/middlewares';
+import { Discount } from '../entities/discount.entity';
+import createDiscount from '../handlers/create-discount';
 @Router({
-    routes: [{
-        requiredAuth: true,
-        path: '/admin/custom-route',
-        method: 'get',
-        handlers: [
-            async (req: MedusaAuthenticatedRequest, res: Response, next: NextFunction): Promise<Response<User[]>> => {
-                /* You can create a function in a separate find and just imported it here. */
-                const userService = req.scope.resolve('userService') as UserService;
-                const users = await userService.list({})
-                return res.send(users);
-            }
-        ]
-    }] 
+    routes: [
+        /**
+         * Create a discount
+         */
+         {
+            requiredAuth: true,
+            path: '/admin/v1/discounts',
+            method: 'post',
+            handlers: [
+                
+                middlewares.authenticate(), 
+                middlewares.wrap(createDiscount)
+            ],
+        },
+    ] 
 })
 export class DiscountRouter {}
+
+export const defaultAdminDiscountsFields: (keyof Discount)[] = [
+    "id",
+    "code",
+    "is_dynamic",
+    "is_disabled",
+    "rule_id",
+    "parent_discount_id",
+    "usage_limit",
+    "usage_count",
+    "starts_at",
+    "ends_at",
+    "created_at",
+    "updated_at",
+    "deleted_at",
+    "metadata",
+    "valid_duration",
+  ]
+  
+  export const defaultAdminDiscountsRelations = [
+    "rule",
+    "parent_discount",
+    "regions",
+    "rule.conditions",
+  ]
+  

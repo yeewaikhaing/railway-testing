@@ -46,29 +46,15 @@ export class ProductService extends MedusaProductService {
     static resolutionKey = 'productService';
     readonly #manager: EntityManager;
     private readonly container: ConstructorParams;
-    private readonly productRepo: ProductRepository;
+    //private readonly productRepo: ProductRepository;
 
     constructor(container: ConstructorParams) {
-        // constructor({
-        //     manager,
-        //     productOptionRepository,
-        //     productRepository,
-        //     productVariantRepository,
-        //     eventBusService,
-        //     productVariantService,
-        //     productTypeRepository,
-        //     productTagRepository,
-        //     imageRepository,
-        //     searchService,
-        //     featureFlagRouter
 
-        // }: ConstructorParams) {
         super(container);
         this.#manager = container.manager;
         //this.productRepo = container.productRepository;
         this.container = container;
-        
-
+      
     }
 
     async listTagsByUsage(count = 10): Promise<ProductTag[]> {
