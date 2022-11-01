@@ -81,6 +81,8 @@ export class AdminUpsertConditionsReq {
     customer_groups?: string[]
   }
 
+  
+
 export type CreateDiscountRuleInput = {
     description?: string
     type: DiscountRuleType

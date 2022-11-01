@@ -26,7 +26,7 @@ import { getRetrieveConfig } from "@medusajs/medusa/dist/utils/get-query-config"
 import { validator } from "@medusajs/medusa/dist/utils/validator"
 
 /**
- * @oas [post] /store/discounts/{id}
+ * @oas [post] /admin/v1/discounts/{id}
  * operationId: "PostDiscountsDiscount"
  * summary: "Update a Discount"
  * description: "Updates a Discount with a given set of rules that define how the Discount behaves."

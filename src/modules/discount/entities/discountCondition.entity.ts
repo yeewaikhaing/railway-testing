@@ -6,18 +6,18 @@ import { Product } from "../../product/entities/product.entity";
 @Entity()
 export class DiscountCondition extends MedusaDiscountCondition{
 
-@ManyToMany(() => Product)
-  @JoinTable({
-    name: "discount_condition_product",
-    joinColumn: {
-      name: "condition_id",
-      referencedColumnName: "id",
-    },
-    inverseJoinColumn: {
-      name: "product_id",
-      referencedColumnName: "id",
-    },
-  })
-  products: Product[]
+// @ManyToMany(() => Product)
+//   @JoinTable({
+//     name: "discount_condition_product",
+//     joinColumn: {
+//       name: "condition_id",
+//       referencedColumnName: "id",
+//     },
+//     inverseJoinColumn: {
+//       name: "product_id",
+//       referencedColumnName: "id",
+//     },
+//   })
+//   products: Product[]
 
 }

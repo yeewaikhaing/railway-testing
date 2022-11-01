@@ -27,7 +27,7 @@ type InjectedDependencies = {
 
 @Service({override: MedusaDiscountCondtionService})
 export class DiscountConditionService extends MedusaDiscountCondtionService {
-    static resolutionKey = 'discountCondtionService';
+    static resolutionKey = 'discountConditionService';
 
     private readonly manager: EntityManager;
     private readonly discountConditionRepo: typeof DiscountConditionRepository;
