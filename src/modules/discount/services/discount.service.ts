@@ -58,6 +58,24 @@ export class DiscountService extends MedusaDiscountService {
     }
 
     /**
+   * Deletes a discount idempotently
+   * @param {string} discountId - id of discount to delete
+   * @return {Promise} the result of the delete operation
+   */
+  async delete(discountId: string): Promise<void> {
+    return await this.atomicPhase_(async (manager) => {
+      const discountRepo = manager.getCustomRepository(this.container.discountRepository);
+
+      const discount = await discountRepo.findOne({ where: { id: discountId } })
+
+      if (!discount) {
+        return
+      }
+
+      await discountRepo.softRemove(discount)
+    })
+  }
+    /**
    * @param {Object} selector - the query object for find
    * @param {Object} config - the config object containing query settings
    * @return {Promise} the result of the find operation

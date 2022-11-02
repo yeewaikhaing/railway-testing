@@ -13,6 +13,7 @@ import addRegionDiscount from '../handlers/add-region-discount';
 import removeRegionDiscount from '../handlers/remove-region-discount';
 import getDiscountByCode from '../handlers/get-discount-by-code';
 import listDiscount from '../handlers/list-discount';
+import deleteDiscount from '../handlers/delete-discount';
 
 @Router({
     routes: [
@@ -71,16 +72,16 @@ import listDiscount from '../handlers/list-discount';
         /**
          * Update a discount condition
          */
-        //  {
-        //     requiredAuth: true,
-        //     path: '/admin/v1/discounts/:discount_id/conditions/:condition_id',
-        //     method: 'post',
-        //     handlers: [
+         {
+            requiredAuth: true,
+            path: '/admin/v1/discounts/:discount_id/conditions/:condition_id',
+            method: 'post',
+            handlers: [
                 
-        //         middlewares.authenticate(), 
-        //         middlewares.wrap(updateCondition)
-        //     ],
-        // },
+                middlewares.authenticate(), 
+                middlewares.wrap(updateCondition)
+            ],
+        },
         /**
          * Delete a discount condition
          */
@@ -139,6 +140,18 @@ import listDiscount from '../handlers/list-discount';
             handlers: [
                 middlewares.authenticate(), 
                 middlewares.wrap(listDiscount)
+            ],
+        },
+        /**
+         * Delete discount by Id
+         */
+         {
+            requiredAuth: true,
+            path: '/admin/v1/discounts/:discount_id',
+            method: 'delete',
+            handlers: [
+                middlewares.authenticate(), 
+                middlewares.wrap(deleteDiscount)
             ],
         },
 
