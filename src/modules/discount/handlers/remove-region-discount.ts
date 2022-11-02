@@ -1,15 +1,14 @@
-import { defaultAdminDiscountsFields, defaultAdminDiscountsRelations } from "../routers/discount.router"
+import { defaultAdminDiscountsFields, defaultAdminDiscountsRelations } from "../routers/discount.router";
 
-import { Discount } from "../entities/discount.entity"
-import {DiscountService} from "../services/discount.service"
 import { EntityManager } from "typeorm"
+import { DiscountService } from "../services/discount.service";
 
 /**
- * @oas [post] /admin/v1/discounts/{discount_id}/regions/{region_id}
- * operationId: "PostDiscountsDiscountRegionsRegion"
- * summary: "Add Region"
- * description: "Adds a Region to the list of Regions that a Discount can be used in."
+ * @oas [delete] /admin/v1/discounts/{discount_id}/regions/{region_id}
+ * operationId: "DeleteDiscountsDiscountRegionsRegion"
+ * summary: "Remove Region"
  * x-authenticated: true
+ * description: "Removes a Region from the list of Regions that a Discount can be used in."
  * parameters:
  *   - (path) id=* {string} The ID of the Discount.
  *   - (path) region_id=* {string} The ID of the Region.
@@ -20,14 +19,14 @@ import { EntityManager } from "typeorm"
  *       import Medusa from "@medusajs/medusa-js"
  *       const medusa = new Medusa({ baseUrl: MEDUSA_BACKEND_URL, maxRetries: 3 })
  *       // must be previously logged in or use api token
- *       medusa.admin.discounts.addRegion(discount_id, region_id)
+ *       medusa.admin.discounts.removeRegion(discount_id, region_id)
  *       .then(({ discount }) => {
  *         console.log(discount.id);
  *       });
  *   - lang: Shell
  *     label: cURL
  *     source: |
- *       curl --location --request POST 'https://medusa-url.com/admin/discounts/{id}/regions/{region_id}' \
+ *       curl --location --request DELETE 'https://medusa-url.com/admin/discounts/{id}/regions/{region_id}' \
  *       --header 'Authorization: Bearer {api_token}'
  * security:
  *   - api_token: []
@@ -60,15 +59,14 @@ export default async (req, res) => {
   const { discount_id, region_id } = req.params
 
   const discountService: DiscountService = req.scope.resolve(DiscountService.resolutionKey);
-
   const manager: EntityManager = req.scope.resolve("manager")
   await manager.transaction(async (transactionManager) => {
     return await discountService
       .withTransaction(transactionManager)
-      .addRegion(discount_id, region_id)
+      .removeRegion(discount_id, region_id)
   })
 
-  const discount: Discount = await discountService.retrieve(discount_id, {
+  const discount = await discountService.retrieve(discount_id, {
     select: defaultAdminDiscountsFields,
     relations: defaultAdminDiscountsRelations,
   })

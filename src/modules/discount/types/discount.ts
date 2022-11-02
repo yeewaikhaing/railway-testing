@@ -70,6 +70,15 @@ export class AdminUpsertConditionsReq {
     customer_groups?: string[]
   }
 
+  export class AdminGetDiscountsDiscountRuleParams {
+    @IsOptional()
+    @IsEnum(DiscountRuleType)
+    type?: DiscountRuleType
+  
+    @IsOptional()
+    @IsEnum(AllocationType)
+    allocation?: AllocationType
+  }
   export type UpsertDiscountConditionInput = {
     rule_id?: string
     id?: string
@@ -104,5 +113,25 @@ export type CreateDiscountInput = {
     metadata?: Record<string, unknown>
   }
 
-
+  export class FilterableDiscountProps {
+    @IsString()
+    @IsOptional()
+    q?: string
+  
+    @IsBoolean()
+    @IsOptional()
+    @Transform(({ value }) => value === "true")
+    is_dynamic?: boolean
+  
+    @IsBoolean()
+    @IsOptional()
+    @Transform(({ value }) => value === "true")
+    is_disabled?: boolean
+  
+    @ValidateNested()
+    @IsOptional()
+    @Type(() => AdminGetDiscountsDiscountRuleParams)
+    rule?: AdminGetDiscountsDiscountRuleParams
+  }
+  
   

@@ -9,6 +9,10 @@ import createCondition from '../handlers/create-condition';
 import getCondition from '../handlers/get-condition';
 import updateCondition from '../handlers/update-condition';
 import deleteCondition from '../handlers/delete-condition';
+import addRegionDiscount from '../handlers/add-region-discount';
+import removeRegionDiscount from '../handlers/remove-region-discount';
+import getDiscountByCode from '../handlers/get-discount-by-code';
+import listDiscount from '../handlers/list-discount';
 
 @Router({
     routes: [
@@ -87,6 +91,54 @@ import deleteCondition from '../handlers/delete-condition';
             handlers: [
                 middlewares.authenticate(), 
                 middlewares.wrap(deleteCondition)
+            ],
+        },
+        /**
+         * Adds a Region to the list of Regions that a Discount can be used in.
+         */
+         {
+            requiredAuth: true,
+            path: '/admin/v1/discounts/:discount_id/regions/:region_id',
+            method: 'post',
+            handlers: [
+                middlewares.authenticate(), 
+                middlewares.wrap(addRegionDiscount)
+            ],
+        },
+        /**
+         * Removes a Region from the list of Regions that a Discount can be used in
+         */
+         {
+            requiredAuth: true,
+            path: '/admin/v1/discounts/:discount_id/regions/:region_id',
+            method: 'delete',
+            handlers: [
+                middlewares.authenticate(), 
+                middlewares.wrap(removeRegionDiscount)
+            ],
+        },
+        /**
+         * Retrieves a Discount by its discount code
+         */
+         {
+            requiredAuth: true,
+            path: '/admin/v1/discounts/code/:code',
+            method: 'get',
+            handlers: [
+                middlewares.authenticate(), 
+                middlewares.wrap(getDiscountByCode)
+            ],
+        },
+        /**
+         * List Discounts
+         */
+         {
+            requiredAuth: true,
+            path: '/admin/v1/discounts',
+            method: 'get',
+            handlers: [
+                middlewares.authenticate(), 
+                middlewares.wrap(listDiscount)
             ],
         },
 

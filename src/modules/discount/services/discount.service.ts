@@ -18,7 +18,7 @@ import { ProductService } from "../../product/services/product.service";
 import { FlagRouter } from "@medusajs/medusa/dist/utils/flag-router";
 import { Discount } from "../entities/discount.entity";
 import { buildQuery, setMetadata } from "@medusajs/medusa/dist/utils"
-import { CreateDiscountInput, CreateDiscountRuleInput } from "../types/discount";
+import { CreateDiscountInput, CreateDiscountRuleInput,FilterableDiscountProps } from "../types/discount";
 import { isEmpty, omit } from "lodash"
 import { FindConfig, Selector } from "@medusajs/medusa/dist/types/common"
 import { MedusaError } from "medusa-core-utils"
@@ -56,6 +56,109 @@ export class DiscountService extends MedusaDiscountService {
        // this.regionService = container.regionService;
         this.discountConditionService = container.discountConditionService;
     }
+
+    /**
+   * @param {Object} selector - the query object for find
+   * @param {Object} config - the config object containing query settings
+   * @return {Promise} the result of the find operation
+   */
+  async listAndCount(
+    selector: FilterableDiscountProps = {},
+    config: FindConfig<Discount> = {
+      take: 20,
+      skip: 0,
+      order: { created_at: "DESC" },
+    }
+  ): Promise<[Discount[], number]> {
+    const manager = this.manager_
+    const discountRepo = manager.getCustomRepository(this.container.discountRepository);
+
+    let q
+    if ("q" in selector) {
+      q = selector.q
+      delete selector.q
+    }
+
+    const query = buildQuery(selector as Selector<Discount>, config)
+
+    if (q) {
+      const where = query.where
+
+      delete where.code
+
+      query.where = (qb: SelectQueryBuilder<Discount>): void => {
+        qb.where(where)
+
+        qb.andWhere(
+          new Brackets((qb) => {
+            qb.where({ code: ILike(`%${q}%`) })
+          })
+        )
+      }
+    }
+
+    const [discounts, count] = await discountRepo.findAndCount(query)
+
+    return [discounts, count]
+  }
+  /**
+   * Gets a discount by discount code.
+   * @param {string} discountCode - discount code of discount to retrieve
+   * @param {Object} config - the config object containing query settings
+   * @return {Promise<Discount>} the discount document
+   */
+   async retrieveByCode(
+    discountCode: string,
+    config: FindConfig<Discount> = {}
+  ): Promise<Discount> {
+    const manager = this.manager_
+    const discountRepo = manager.getCustomRepository(this.container.discountRepository);
+
+    const normalizedCode = discountCode.toUpperCase().trim()
+
+    let query = buildQuery({ code: normalizedCode, is_dynamic: false }, config)
+    let discount = await discountRepo.findOne(query)
+
+    if (!discount) {
+      query = buildQuery({ code: normalizedCode, is_dynamic: true }, config)
+      discount = await discountRepo.findOne(query)
+
+      if (!discount) {
+        throw new MedusaError(
+          MedusaError.Types.NOT_FOUND,
+          `Discount with code ${discountCode} was not found`
+        )
+      }
+    }
+
+    return discount
+  }
+  
+    /**
+   * Removes a region from the discount regions array.
+   * @param {string} discountId - id of discount
+   * @param {string} regionId - id of region to remove
+   * @return {Promise} the result of the update operation
+   */
+  async removeRegion(discountId: string, regionId: string): Promise<Discount> {
+    return await this.atomicPhase_(async (manager) => {
+      const discountRepo = manager.getCustomRepository(this.container.discountRepository)
+
+      const discount = await this.retrieve(discountId, {
+        relations: ["regions"],
+      })
+
+      const exists = discount.regions.find((r) => r.id === regionId)
+      // If region is not present, we return early
+      if (!exists) {
+        return discount
+      }
+
+      discount.regions = discount.regions.filter((r) => r.id !== regionId)
+
+      return await discountRepo.save(discount)
+    })
+  }
 
     /**
    * Adds a region to the discount regions array.
