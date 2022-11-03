@@ -5,51 +5,51 @@ import {
     IsObject
   } from "class-validator";
 
-  // export class AddressPayload {
-  //   @IsOptional()
-  //   @IsString()
-  //   first_name?: string
+  export class AddressPayload {
+    @IsOptional()
+    @IsString()
+    first_name?: string
   
-  //   @IsOptional()
-  //   @IsString()
-  //   last_name?: string
+    @IsOptional()
+    @IsString()
+    last_name?: string
   
-  //   @IsOptional()
-  //   @IsString()
-  //   phone?: string
+    @IsOptional()
+    @IsString()
+    phone?: string
   
-  //   @IsOptional()
-  //   @IsObject()
-  //   metadata?: Record<string, unknown>
+    @IsOptional()
+    @IsObject()
+    metadata?: Record<string, unknown>
   
-  //   @IsOptional()
-  //   @IsString()
-  //   company?: string
+    @IsOptional()
+    @IsString()
+    company?: string
   
-  //   @IsOptional()
-  //   @IsString()
-  //   address_1?: string
+    @IsOptional()
+    @IsString()
+    address_1?: string
   
-  //   @IsOptional()
-  //   @IsString()
-  //   address_2?: string
+    @IsOptional()
+    @IsString()
+    address_2?: string
   
-  //   @IsOptional()
-  //   @IsString()
-  //   city?: string
+    @IsOptional()
+    @IsString()
+    city?: string
   
-  //   @IsOptional()
-  //   @IsString()
-  //   country_code?: string
+    @IsOptional()
+    @IsString()
+    country_code?: string
   
-  //   @IsOptional()
-  //   @IsString()
-  //   province?: string
+    @IsOptional()
+    @IsString()
+    province?: string
   
-  //   @IsOptional()
-  //   @IsString()
-  //   postal_code?: string
-  // }
+    @IsOptional()
+    @IsString()
+    postal_code?: string
+  }
   
 export class AddressCreatePayload {
     @IsString()
