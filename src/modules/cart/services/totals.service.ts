@@ -6,7 +6,7 @@ import { FlagRouter } from "@medusajs/medusa/dist/utils/flag-router";
 import { ITaxCalculationStrategy, TaxCalculationContext } from "@medusajs/medusa/dist/interfaces";
 import { Cart } from "../entities/cart.entity";
 import { Order } from "../../order/order.entity";
-import { ShippingMethod } from '../../order/entities/shippingMethod.entity'; 
+import { ShippingMethod } from '../../shipping/entities/shippingMethod.entity'; 
 import { LineAllocationsMap,LineDiscountAmount,SubtotalOptions } from "../types/totals";
 import { DiscountRuleType } from "@medusajs/medusa/dist/models/discount-rule";
 import { Discount } from "../../discount/entities/discount.entity";

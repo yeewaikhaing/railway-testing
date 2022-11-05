@@ -6,28 +6,8 @@ import middlewares,{
   } from '@medusajs/medusa/dist/api/middlewares';
 import { StorePostCartReq } from "../handlers/create-cart";
 import createCart from '../handlers/create-cart';
-
-@Router({
-    
-    routes: 
-    [
-       /**
-         * Create a cart
-         */
-        {
-            requiredAuth: true,
-            path: '/store/v1/carts',
-            method: 'post',
-            handlers: [
-                transformBody(StorePostCartReq),
-                middlewares.wrap(createCart)
-            ],
-        }, 
-    ] 
-})
-export class CartRouter {
-
-}
+import getCart from '../handlers/get-cart';
+import { FindParams } from '@medusajs/medusa/dist/types/common';
 
 export const defaultStoreCartFields: (keyof Cart)[] = []
 
@@ -47,3 +27,42 @@ export const defaultStoreCartRelations = [
   "discounts",
   "discounts.rule",
 ]
+@Router({
+    
+    routes: 
+    [
+       /**
+         * Create a cart
+         */
+        {
+            requiredAuth: true,
+            path: '/store/v1/carts',
+            method: 'post',
+            handlers: [
+                transformBody(StorePostCartReq),
+                middlewares.wrap(createCart)
+            ],
+        }, 
+        /**
+         * Get a cart
+         */
+         {
+          requiredAuth: true,
+          path: '/store/v1/carts/:id',
+          method: 'get',
+          handlers: [
+            transformQuery(FindParams, {
+              defaultRelations: defaultStoreCartRelations,
+              defaultFields: defaultStoreCartFields,
+              isList: false,
+            }),
+              middlewares.wrap(getCart)
+          ],
+      }, 
+    ] 
+})
+export class CartRouter {
+
+}
+
+

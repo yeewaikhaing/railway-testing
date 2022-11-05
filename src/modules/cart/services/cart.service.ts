@@ -1,8 +1,8 @@
 import { Service } from 'medusa-extender';
 import { MedusaError } from "medusa-core-utils"
-import { EntityManager, DeepPartial } from 'typeorm';
+import { EntityManager, DeepPartial, In } from 'typeorm';
 import { CartRepository } from "../repositories/cart.repository";
-import { ShippingMethodRepository } from "@medusajs/medusa/dist/repositories/shipping-method";
+import { ShippingMethodRepository } from "../../shipping/repositories/shippingMethod.repository";
 import { AddressRepository } from "../../customer/v1/repositories/address.repository";
 import { PaymentSessionRepository } from "@medusajs/medusa/dist/repositories/payment-session";
 import { LineItemRepository } from "../../lineItem/repositories/lineItem.repository";
@@ -13,7 +13,6 @@ import {
     InventoryService,  
     PaymentProviderService, 
     SalesChannelService, 
-    ShippingOptionService, 
     TaxProviderService, 
  } from "@medusajs/medusa/dist/services";
 import { IPriceSelectionStrategy } from "@medusajs/medusa/dist/interfaces";
@@ -27,11 +26,15 @@ import { CustomerService } from "../../customer/v1/services/customer.service";
 import { DiscountService } from "../../discount/services/discount.service";
 import LineItemAdjustmentService from "@medusajs/medusa/dist/services/line-item-adjustment";
 import { default as MedusaCartService } from '@medusajs/medusa/dist/services/cart';
-import { CartCreateProps } from "../types/cart";
+import { CartCreateProps, CartUpdateProps } from "../types/cart";
 import { Cart } from "../entities/cart.entity";
 import { buildQuery, isDefined, setMetadata } from "@medusajs/medusa/dist/utils"
 import { FindConfig } from '@medusajs/medusa/dist/types/common';
 import { TotalsService } from './totals.service';
+import { LineItem } from '../../lineItem/entities/lineItem.entity';
+import { DiscountRuleType } from '@medusajs/medusa';
+import { Discount } from '../../discount/entities/discount.entity';
+import { ShippingOptionService } from '../../shipping/services/shippingOption.service';
 
 type TotalsConfig = {
     force_taxes?: boolean
@@ -79,6 +82,363 @@ export class CartService extends MedusaCartService {
         this.manager = container.manager;
         this.cartRepository = container.cartRepository;
     }
+
+    async update(cartId: string, data: CartUpdateProps): Promise<Cart> {
+      return await this.atomicPhase_(
+        async (transactionManager: EntityManager) => {
+          const cartRepo = transactionManager.getCustomRepository(this.cartRepository);
+          const relations = [
+            "items",
+            "shipping_methods",
+            "shipping_address",
+            "billing_address",
+            "gift_cards",
+            "customer",
+            "region",
+            "payment_sessions",
+            "region.countries",
+            "discounts",
+            "discounts.rule",
+            "discounts.regions",
+          ]
+  
+          // if (
+          //   this.featureFlagRouter_.isFeatureEnabled(
+          //     SalesChannelFeatureFlag.key
+          //   ) &&
+          //   data.sales_channel_id
+          // ) {
+          //   relations.push("items.variant", "items.variant.product")
+          // }
+  
+          const cart = await this.retrieve(cartId, {
+            select: [
+              "subtotal",
+              "tax_total",
+              "shipping_total",
+              "discount_total",
+              "total",
+            ],
+            relations,
+          })
+  
+          if (data.customer_id) {
+            await this.updateCustomerId_(cart, data.customer_id)
+          } else {
+            if (isDefined(data.email)) {
+              const customer = await this.createOrFetchUserFromEmail_(data.email)
+              cart.customer = customer
+              cart.customer_id = customer.id
+              cart.email = customer.email
+            }
+          }
+  
+          if (isDefined(data.customer_id) || isDefined(data.region_id)) {
+            await this.updateUnitPrices_(cart, data.region_id, data.customer_id)
+          }
+  
+          if (isDefined(data.region_id)) {
+            const shippingAddress =
+              typeof data.shipping_address !== "string"
+                ? data.shipping_address
+                : {}
+            const countryCode =
+              (data.country_code || shippingAddress?.country_code) ?? null
+            await this.setRegion_(cart, data.region_id, countryCode)
+          }
+  
+          const addrRepo = transactionManager.getCustomRepository(
+            this.addressRepository_
+          )
+  
+          const billingAddress = data.billing_address_id ?? data.billing_address
+          if (billingAddress !== undefined) {
+            await this.updateBillingAddress_(cart, billingAddress, addrRepo)
+          }
+  
+          const shippingAddress =
+            data.shipping_address_id ?? data.shipping_address
+          if (shippingAddress !== undefined) {
+            await this.updateShippingAddress_(cart, shippingAddress, addrRepo)
+          }
+  
+          // if (
+          //   this.featureFlagRouter_.isFeatureEnabled(SalesChannelFeatureFlag.key)
+          // ) {
+          //   if (
+          //     isDefined(data.sales_channel_id) &&
+          //     data.sales_channel_id != cart.sales_channel_id
+          //   ) {
+          //     await this.onSalesChannelChange(cart, data.sales_channel_id)
+          //     cart.sales_channel_id = data.sales_channel_id
+          //   }
+          // }
+  
+          if (isDefined(data.discounts)) {
+            const previousDiscounts = [...cart.discounts]
+            cart.discounts.length = 0
+  
+            await Promise.all(
+              data.discounts.map(async ({ code }) => {
+                return this.applyDiscount(cart, code)
+              })
+            )
+            const hasFreeShipping = cart.discounts.some(
+              ({ rule }) => rule?.type === DiscountRuleType.FREE_SHIPPING
+            )
+  
+            // if we previously had a free shipping discount and then removed it,
+            // we need to update shipping methods to original price
+            if (
+              previousDiscounts.some(
+                ({ rule }) => rule.type === DiscountRuleType.FREE_SHIPPING
+              ) &&
+              !hasFreeShipping
+            ) {
+              await this.adjustFreeShipping_(cart, false)
+            }
+  
+            if (hasFreeShipping) {
+              await this.adjustFreeShipping_(cart, true)
+            }
+          }
+  
+          if ("gift_cards" in data) {
+            cart.gift_cards = []
+  
+            await Promise.all(
+              (data.gift_cards ?? []).map(async ({ code }) => {
+                return this.applyGiftCard_(cart, code)
+              })
+            )
+          }
+  
+          if (data?.metadata) {
+            cart.metadata = setMetadata(cart, data.metadata)
+          }
+  
+          if ("context" in data) {
+            const prevContext = cart.context || {}
+            cart.context = {
+              ...prevContext,
+              ...data.context,
+            }
+          }
+  
+          if ("completed_at" in data) {
+            cart.completed_at = data.completed_at!
+          }
+  
+          if ("payment_authorized_at" in data) {
+            cart.payment_authorized_at = data.payment_authorized_at!
+          }
+  
+          const updatedCart = await cartRepo.save(cart)
+  
+          if ("email" in data || "customer_id" in data) {
+            await this.eventBus_
+              .withTransaction(transactionManager)
+              .emit(CartService.Events.CUSTOMER_UPDATED, updatedCart.id)
+          }
+  
+          await this.eventBus_
+            .withTransaction(transactionManager)
+            .emit(CartService.Events.UPDATED, updatedCart)
+  
+          return updatedCart
+        }
+      )
+    }
+  
+    /**
+   * Ensures shipping total on cart is correct in regards to a potential free
+   * shipping discount
+   * If a free shipping is present, we set shipping methods price to 0
+   * if a free shipping was present, we set shipping methods to original amount
+   * @param cart - the the cart to adjust free shipping for
+   * @param shouldAdd - flag to indicate, if we should add or remove
+   * @return void
+   */
+  protected async adjustFreeShipping_(
+    cart: Cart,
+    shouldAdd: boolean
+  ): Promise<void> {
+   // const transactionManager = this.transactionManager_ ?? this.manager_
+   const transactionManager = this.transactionManager_ ?? this.manager
+
+    if (cart.shipping_methods?.length) {
+      const shippingMethodRepository = transactionManager.getCustomRepository(
+        this.container.shippingMethodRepository
+      )
+
+      // if any free shipping discounts, we ensure to update shipping method amount
+      if (shouldAdd) {
+        await shippingMethodRepository.update(
+          {
+            id: In(
+              cart.shipping_methods.map((shippingMethod) => shippingMethod.id)
+            ),
+          },
+          {
+            price: 0,
+          }
+        )
+      } else {
+        await Promise.all(
+          cart.shipping_methods.map(async (shippingMethod) => {
+            // if free shipping discount is removed, we adjust the shipping
+            // back to its original amount
+            // if shipping option amount is null, we assume the option is calculated
+            shippingMethod.price =
+              shippingMethod.shipping_option.amount ??
+              (await this.container.shippingOptionService.getPrice_(
+                shippingMethod.shipping_option,
+                shippingMethod.data,
+                cart
+              ))
+            return shippingMethodRepository.save(shippingMethod)
+          })
+        )
+      }
+    }
+  }
+
+    /**
+   * Updates the cart's discounts.
+   * If discount besides free shipping is already applied, this
+   * will be overwritten
+   * Throws if discount regions does not include the cart region
+   * @param cart - the cart to update
+   * @param discountCode - the discount code
+   * @return the result of the update operation
+   */
+  async applyDiscount(cart: Cart, discountCode: string): Promise<void> {
+    return await this.atomicPhase_(
+      async (transactionManager: EntityManager) => {
+        const discount = await this.container.discountService
+          .withTransaction(transactionManager)
+          .retrieveByCode(discountCode, { relations: ["rule", "regions"] })
+
+        await this.container.discountService
+          .withTransaction(transactionManager)
+          .validateDiscountForCartOrThrow(cart, discount)
+
+        const rule = discount.rule
+
+        // if discount is already there, we simply resolve
+        if (cart.discounts.find(({ id }) => id === discount.id)) {
+          return
+        }
+
+        const toParse = [...cart.discounts, discount]
+
+        let sawNotShipping = false
+        const newDiscounts = toParse.map((discountToParse) => {
+          switch (discountToParse.rule?.type) {
+            case DiscountRuleType.FREE_SHIPPING:
+              if (discountToParse.rule.type === rule.type) {
+                return discount
+              }
+              return discountToParse
+            default:
+              if (!sawNotShipping) {
+                sawNotShipping = true
+                if (rule?.type !== DiscountRuleType.FREE_SHIPPING) {
+                  return discount
+                }
+                return discountToParse
+              }
+              return null
+          }
+        })
+
+        cart.discounts = newDiscounts.filter(
+          (newDiscount): newDiscount is Discount => {
+            return !!newDiscount
+          }
+        )
+
+        // ignore if free shipping
+        if (rule?.type !== DiscountRuleType.FREE_SHIPPING && cart?.items) {
+          await this.refreshAdjustments_(cart)
+        }
+      }
+    )
+  }
+
+    protected async updateUnitPrices_(
+      cart: Cart,
+      regionId?: string,
+      customer_id?: string
+    ): Promise<void> {
+      // const transactionManager = this.transactionManager_ ?? this.manager_
+      const transactionManager = this.transactionManager_ ?? this.manager
+      
+      // If the cart contains items, we update the price of the items
+      // to match the updated region or customer id (keeping the old
+      // value if it exists)
+      if (cart.items?.length) {
+        const region = await this.container.regionService
+          .withTransaction(this.transactionManager_)
+          .retrieve(regionId || cart.region_id, {
+            relations: ["countries"],
+          })
+  
+        //const lineItemServiceTx = this.lineItemService_.withTransaction(transactionManager)
+        const lineItemServiceTx = this.container.lineItemService.withTransaction(transactionManager)
+  
+        cart.items = (
+          await Promise.all(
+            cart.items.map(async (item) => {
+              const availablePrice = await this.priceSelectionStrategy_
+                .withTransaction(transactionManager)
+                .calculateVariantPrice(item.variant_id, {
+                  region_id: region.id,
+                  currency_code: region.currency_code,
+                  quantity: item.quantity,
+                  customer_id: customer_id || cart.customer_id,
+                  include_discount_prices: true,
+                })
+                .catch(() => undefined)
+  
+              if (
+                availablePrice !== undefined &&
+                availablePrice.calculatedPrice !== null
+              ) {
+                return lineItemServiceTx.update(item.id, {
+                  has_shipping: false,
+                  unit_price: availablePrice.calculatedPrice,
+                })
+              } else {
+                await lineItemServiceTx.delete(item.id)
+                return
+              }
+            })
+          )
+        )
+          .flat()
+          .filter((item): item is LineItem => !!item)
+      }
+    }
+  
+    /**
+   * Sets the customer id of a cart
+   * @param cart - the cart to add email to
+   * @param customerId - the customer to add to cart
+   * @return the result of the update operation
+   */
+  protected async updateCustomerId_(
+    cart: Cart,
+    customerId: string
+  ): Promise<void> {
+    const customer = await this.container.customerService
+      .withTransaction(this.transactionManager_)
+      .retrieve(customerId)
+
+    cart.customer = customer
+    cart.customer_id = customer.id
+    cart.email = customer.email
+  }
 
     async retrieveWithTotals(
         cartId: string,
@@ -223,9 +583,7 @@ export class CartService extends MedusaCartService {
     return await this.atomicPhase_(
       async (transactionManager: EntityManager) => {
         const cartRepo = transactionManager.getCustomRepository(this.cartRepository);
-        const addressRepo = transactionManager.getCustomRepository(
-          this.container.addressRepository
-        )
+        const addressRepo = transactionManager.getCustomRepository(this.container.addressRepository);
 
         const rawCart: DeepPartial<Cart> = {
           context: data.context ?? {},
@@ -238,6 +596,7 @@ export class CartService extends MedusaCartService {
         //     await this.getValidatedSalesChannel(data.sales_channel_id)
         //   ).id
         // }
+console.log("data 1 => ", data);
 
         if (data.email) {
           const customer = await this.createOrFetchUserFromEmail_(data.email)
@@ -291,6 +650,7 @@ export class CartService extends MedusaCartService {
             rawCart.shipping_address_id = data.shipping_address_id
           }
         }
+        // end of shipping address
 
         if (data.billing_address) {
           if (!regCountries.includes(data.billing_address.country_code!)) {
@@ -334,7 +694,9 @@ export class CartService extends MedusaCartService {
           .emit(CartService.Events.CREATED, {
             id: cart.id,
           })
-        return cart
+       return cart
+      //  console.log("created cart => ", createdCart);
+      //  return createdCart;
         
       }
     )

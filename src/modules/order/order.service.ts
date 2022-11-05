@@ -4,6 +4,7 @@ import { OrderRepository } from './order.repository';
 import { Service } from 'medusa-extender';
 import { User } from "../user/entities/user.entity";
 import {buildQuery} from "@medusajs/medusa/dist/utils";
+import { FlagRouter } from '@medusajs/medusa/dist/utils/flag-router';
 
 type InjectedDependencies = {
     manager: EntityManager;
@@ -27,6 +28,7 @@ type InjectedDependencies = {
     //loggedInUser: User;
     loggedInUser?: User;
     orderService: OrderService;
+    featureFlagRouter: FlagRouter;
 };
 
 @Service({ scope: 'SCOPED', override: MedusaOrderService })

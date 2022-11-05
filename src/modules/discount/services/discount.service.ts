@@ -1,4 +1,4 @@
-import { BaseService } from "medusa-interfaces";
+import { isFuture, isPast } from "@medusajs/medusa/dist/utils/date-helpers"
 import { Service } from 'medusa-extender';
 import { Brackets,
     DeepPartial,
@@ -24,6 +24,7 @@ import { FindConfig, Selector } from "@medusajs/medusa/dist/types/common"
 import { MedusaError } from "medusa-core-utils"
 import { Region } from "@medusajs/medusa/dist/models/region";
 import { RegionService } from "../../region/services/region.service";
+import { Cart } from "../../cart/entities/cart.entity";
 
 type InjectedDependencies = {
     manager: EntityManager;
@@ -57,6 +58,131 @@ export class DiscountService extends MedusaDiscountService {
         this.discountConditionService = container.discountConditionService;
     }
 
+    hasReachedLimit(discount: Discount): boolean {
+      const count = discount.usage_count || 0
+      const limit = discount.usage_limit
+      return !!limit && count >= limit
+    }
+  
+    hasNotStarted(discount: Discount): boolean {
+      return isFuture(discount.starts_at)
+    }
+  
+    hasExpired(discount: Discount): boolean {
+      if (!discount.ends_at) {
+        return false
+      }
+  
+      return isPast(discount.ends_at)
+    }
+  
+    isDisabled(discount: Discount): boolean {
+      return discount.is_disabled
+    }
+  
+    async isValidForRegion(
+      discount: Discount,
+      region_id: string
+    ): Promise<boolean> {
+      return await this.atomicPhase_(async () => {
+        let regions = discount.regions
+  
+        if (discount.parent_discount_id) {
+          const parent = await this.retrieve(discount.parent_discount_id, {
+            relations: ["rule", "regions"],
+          })
+  
+          regions = parent.regions
+        }
+  
+        return regions.find(({ id }) => id === region_id) !== undefined
+      })
+    }
+  
+    async canApplyForCustomer(
+      discountRuleId: string,
+      customerId: string | undefined
+    ): Promise<boolean> {
+      return await this.atomicPhase_(async (manager: EntityManager) => {
+        const discountConditionRepo: DiscountConditionRepository =
+          manager.getCustomRepository(this.container.discountConditionRepository)
+  
+        // Instead of throwing on missing customer id, we simply invalidate the discount
+        if (!customerId) {
+          return false
+        }
+  
+        const customer = await this.customerService_
+          .withTransaction(manager)
+          .retrieve(customerId, {
+            relations: ["groups"],
+          })
+  
+        return await discountConditionRepo.canApplyForCustomer(
+          discountRuleId,
+          customer.id
+        )
+      })
+    }
+    async validateDiscountForCartOrThrow(
+      cart: Cart,
+      discount: Discount
+    ): Promise<void> {
+      return await this.atomicPhase_(async () => {
+        if (this.hasReachedLimit(discount)) {
+          throw new MedusaError(
+            MedusaError.Types.NOT_ALLOWED,
+            "Discount has been used maximum allowed times"
+          )
+        }
+  
+        if (this.hasNotStarted(discount)) {
+          throw new MedusaError(
+            MedusaError.Types.NOT_ALLOWED,
+            "Discount is not valid yet"
+          )
+        }
+  
+        if (this.hasExpired(discount)) {
+          throw new MedusaError(
+            MedusaError.Types.NOT_ALLOWED,
+            "Discount is expired"
+          )
+        }
+  
+        if (this.isDisabled(discount)) {
+          throw new MedusaError(
+            MedusaError.Types.NOT_ALLOWED,
+            "The discount code is disabled"
+          )
+        }
+  
+        const isValidForRegion = await this.isValidForRegion(
+          discount,
+          cart.region_id
+        )
+        if (!isValidForRegion) {
+          throw new MedusaError(
+            MedusaError.Types.INVALID_DATA,
+            "The discount is not available in current region"
+          )
+        }
+        if (cart.customer_id) {
+          const canApplyForCustomer = await this.canApplyForCustomer(
+            discount.rule.id,
+            cart.customer_id
+          )
+  
+          if (!canApplyForCustomer) {
+            throw new MedusaError(
+              MedusaError.Types.NOT_ALLOWED,
+              "Discount is not valid for customer"
+            )
+          }
+        }
+      })
+    }
+  
     /**
    * Deletes a discount idempotently
    * @param {string} discountId - id of discount to delete

@@ -10,12 +10,17 @@ import {buildQuery, setMetadata} from "@medusajs/medusa/dist/utils";
 import { CreateUserInput, UpdateUserInput} from '../types/user';
 import  { validateEmail } from '@medusajs/medusa/dist/utils/is-email'
 import StoreService from '../../store/services/store.service';
+import { FlagRouter } from '@medusajs/medusa/dist/utils/flag-router';
+import  AnalyticsConfigService  from "@medusajs/medusa/dist/services/analytics-config";
+
 type ConstructorParams = {
     manager: EntityManager;
     userRepository: typeof UserRepository;
     eventBusService: EventBusService;
     loggedInUser?: User;
     storeService: any;
+    featureFlagRouter: FlagRouter;
+    analyticsConfigService: AnalyticsConfigService;
 };
 
 @Service({ scope: 'SCOPED', override: MedusaUserService })

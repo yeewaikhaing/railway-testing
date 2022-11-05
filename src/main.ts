@@ -20,6 +20,8 @@ import { DiscountModule } from './modules/discount/discount.module';
 import { RegionModule } from './modules/region/region.module';
 import { LineItemModule } from './modules/lineItem/lineItem.module';
 import { CartModule } from './modules/cart/cart.module';
+import { ShippingModule } from './modules/shipping/shipping.module';
+import { FulfillmentModule } from "./modules/fulfillment/fulfillment.module";
 
 async function bootstrap() {
     const expressInstance = express();
@@ -42,7 +44,9 @@ async function bootstrap() {
         DiscountModule,
         RegionModule,
         LineItemModule,
-        CartModule
+        CartModule,
+        ShippingModule,
+        FulfillmentModule,
     ]);
     
     const port = config?.serverConfig?.port ?? 9000;

@@ -111,6 +111,7 @@ export default async (req, res) => {
     ip: reqIp.getClientIp(req),
     user_agent: req.get("user-agent"),
   }
+  console.log("validated => ", validated);
   
   const middlewareService: MiddlewareService = req.scope.resolve("middlewareService");
   const lineItemService: LineItemService = req.scope.resolve(LineItemService.resolutionKey)
@@ -135,7 +136,8 @@ export default async (req, res) => {
       )
     }
 
-    regionId = regions[0].id
+    //regionId = regions[0].id //EU(eur)
+    regionId = regions[2].id // Asia(mmk)
   }
 
   const toCreate: Partial<CartCreateProps> = {
@@ -147,6 +149,8 @@ export default async (req, res) => {
     },
   }
 
+  //console.log("toCreate => ", toCreate);
+  
   if (req.user && req.user.customer_id) {
     const customerService = req.scope.resolve(CustomerService.resolutionKey);
     const customer = await customerService.retrieve(req.user.customer_id)
@@ -159,7 +163,7 @@ export default async (req, res) => {
       country_code: validated.country_code.toLowerCase(),
     }
   }
-
+  //console.log("toCreate 2 => ", toCreate);
   let cart: Cart
   await entityManager.transaction(async (manager) => {
     cart = await cartService.withTransaction(manager).create(toCreate)
@@ -188,7 +192,8 @@ export default async (req, res) => {
     relations: defaultStoreCartRelations,
   })
 
-  res.status(200).json({ cart })
+ res.status(200).json({ cart })
+  //res.status(200).json({toCreate});
 }
 
 export class Item {

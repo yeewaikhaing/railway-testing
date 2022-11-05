@@ -4,7 +4,7 @@ import {
 } from "typeorm"; 
 import { Entity as MedusaEntity } from "medusa-extender";
 import { Cart as MedusaCart } from "@medusajs/medusa/dist/models/cart";
-import { ShippingMethod } from "../../order/entities/shippingMethod.entity";
+import { ShippingMethod } from "../../shipping/entities/shippingMethod.entity";
 
 @MedusaEntity({override: MedusaCart})
 @Entity()
