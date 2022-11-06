@@ -8,6 +8,7 @@ import { StorePostCartReq } from "../handlers/create-cart";
 import createCart from '../handlers/create-cart';
 import getCart from '../handlers/get-cart';
 import { FindParams } from '@medusajs/medusa/dist/types/common';
+import createLineItem from '../handlers/create-line-item';
 
 export const defaultStoreCartFields: (keyof Cart)[] = []
 
@@ -59,6 +60,17 @@ export const defaultStoreCartRelations = [
               middlewares.wrap(getCart)
           ],
       }, 
+      /**
+       * Add a Line Item
+       */
+       {
+        requiredAuth: true,
+        path: '/store/v1/carts/:id/line-items',
+        method: 'post',
+        handlers: [
+            middlewares.wrap(createLineItem)
+        ],
+    },
     ] 
 })
 export class CartRouter {

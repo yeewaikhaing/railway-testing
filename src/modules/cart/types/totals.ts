@@ -1,5 +1,16 @@
 import { LineItem } from "../../lineItem/entities/lineItem.entity"
 
+export type TotalField =
+  | "shipping_total"
+  | "discount_total"
+  | "tax_total"
+  | "refunded_total"
+  | "total"
+  | "subtotal"
+  | "refundable_amount"
+  | "gift_card_total"
+  | "gift_card_tax_total"
+
 /** The amount of a gift card allocated to a line item */
 export type GiftCardAllocation = {
     amount: number

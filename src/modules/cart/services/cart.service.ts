@@ -1,4 +1,5 @@
 import { Service } from 'medusa-extender';
+import { isEmpty, isEqual } from "lodash"
 import { MedusaError } from "medusa-core-utils"
 import { EntityManager, DeepPartial, In } from 'typeorm';
 import { CartRepository } from "../repositories/cart.repository";
@@ -11,7 +12,6 @@ import {
     EventBusService, 
     GiftCardService, 
     InventoryService,  
-    PaymentProviderService, 
     SalesChannelService, 
     TaxProviderService, 
  } from "@medusajs/medusa/dist/services";
@@ -35,6 +35,8 @@ import { LineItem } from '../../lineItem/entities/lineItem.entity';
 import { DiscountRuleType } from '@medusajs/medusa';
 import { Discount } from '../../discount/entities/discount.entity';
 import { ShippingOptionService } from '../../shipping/services/shippingOption.service';
+import { TotalField } from '../types/totals';
+import { PaymentProviderService } from '../../payment/services/paymentProvider.service';
 
 type TotalsConfig = {
     force_taxes?: boolean
@@ -82,6 +84,402 @@ export class CartService extends MedusaCartService {
         this.manager = container.manager;
         this.cartRepository = container.cartRepository;
     }
+
+    /**
+   * Adds a line item to the cart.
+   * @param cartId - the id of the cart that we will add to
+   * @param lineItem - the line item to add.
+   * @param config
+   *    validateSalesChannels - should check if product belongs to the same sales chanel as cart
+   *                            (if cart has associated sales channel)
+   * @return the result of the update operation
+   */
+  async addLineItem(
+    cartId: string,
+    lineItem: LineItem,
+    config = { validateSalesChannels: true }
+  ): Promise<Cart> {
+    return await this.atomicPhase_(
+      async (transactionManager: EntityManager) => {
+        const cart = await this.retrieve(cartId, {
+          relations: [
+            "shipping_methods",
+            "items",
+            "items.adjustments",
+            "payment_sessions",
+            "items.variant",
+            "items.variant.product",
+            "discounts",
+            "discounts.rule",
+          ],
+        })
+
+        if (this.featureFlagRouter_.isFeatureEnabled("sales_channels")) {
+          if (config.validateSalesChannels) {
+            if (!(await this.validateLineItem(cart, lineItem))) {
+              throw new MedusaError(
+                MedusaError.Types.INVALID_DATA,
+                `The product "${lineItem.title}" must belongs to the sales channel on which the cart has been created.`
+              )
+            }
+          }
+        }
+
+        let currentItem: LineItem | undefined
+        if (lineItem.should_merge) {
+          currentItem = cart.items.find((item) => {
+            if (item.should_merge && item.variant_id === lineItem.variant_id) {
+              return isEqual(item.metadata, lineItem.metadata)
+            }
+            return false
+          })
+        }
+
+        // If content matches one of the line items currently in the cart we can
+        // simply update the quantity of the existing line item
+        const quantity = currentItem
+          ? (currentItem.quantity += lineItem.quantity)
+          : lineItem.quantity
+
+        // Confirm inventory or throw error
+        await this.inventoryService_
+          .withTransaction(transactionManager)
+          .confirmInventory(lineItem.variant_id, quantity)
+
+        if (currentItem) {
+          await this.container.lineItemService
+            .withTransaction(transactionManager)
+            .update(currentItem.id, {
+              quantity: currentItem.quantity,
+            })
+        } else {
+          await this.container.lineItemService
+            .withTransaction(transactionManager)
+            .create({
+              ...lineItem,
+              has_shipping: false,
+              cart_id: cartId,
+            })
+        }
+
+        const lineItemRepository = transactionManager.getCustomRepository(
+          this.container.lineItemRepository
+        )
+        await lineItemRepository.update(
+          {
+            id: In(cart.items.map((item) => item.id)),
+          },
+          {
+            has_shipping: false,
+          }
+        )
+
+        const result = await this.retrieve(cartId, {
+          relations: ["items", "discounts", "discounts.rule", "region"],
+        })
+
+        await this.refreshAdjustments_(result)
+
+        await this.eventBus_
+          .withTransaction(transactionManager)
+          .emit(CartService.Events.UPDATED, result)
+
+        return result
+      }
+    )
+  }
+
+  protected async refreshAdjustments_(cart: Cart): Promise<void> {
+    const transactionManager = this.transactionManager_ ?? this.manager_
+
+    const nonReturnLineIDs = cart.items
+      .filter((item) => !item.is_return)
+      .map((i) => i.id)
+
+    // delete all old non return line item adjustments
+    await this.lineItemAdjustmentService_
+      .withTransaction(transactionManager)
+      .delete({
+        item_id: nonReturnLineIDs,
+      })
+
+    // potentially create/update line item adjustments
+    await this.lineItemAdjustmentService_
+      .withTransaction(transactionManager)
+      .createAdjustments(cart)
+  }
+
+  /**
+   * Check if line item's variant belongs to the cart's sales channel.
+   *
+   * @param cart - the cart for the line item
+   * @param lineItem - the line item being added
+   * @return a boolean indicating validation result
+   */
+   protected async validateLineItem(
+    cart: Cart,
+    lineItem: LineItem
+  ): Promise<boolean> {
+    if (!cart.sales_channel_id) {
+      return true
+    }
+
+    const lineItemVariant = await this.container.productVariantService
+      .withTransaction(this.manager)
+      .retrieve(lineItem.variant_id)
+
+    return !!(
+      await this.container.productService
+        .withTransaction(this.manager_)
+        .filterProductsBySalesChannel(
+          [lineItemVariant.product_id],
+          cart.sales_channel_id
+        )
+    ).length
+  }
+
+    protected transformQueryForTotals_(
+      config: FindConfig<Cart>
+    ): FindConfig<Cart> & { totalsToSelect: TotalField[] } {
+      let { select, relations } = config
+  
+      if (!select) {
+        return {
+          select,
+          relations,
+          totalsToSelect: [],
+        }
+      }
+  
+      const totalFields = [
+        "subtotal",
+        "tax_total",
+        "shipping_total",
+        "discount_total",
+        "gift_card_total",
+        "total",
+      ]
+  
+      const totalsToSelect = select.filter((v) =>
+        totalFields.includes(v)
+      ) as TotalField[]
+      if (totalsToSelect.length > 0) {
+        const relationSet = new Set(relations)
+        relationSet.add("items")
+        relationSet.add("items.tax_lines")
+        relationSet.add("gift_cards")
+        relationSet.add("discounts")
+        relationSet.add("discounts.rule")
+        // relationSet.add("discounts.parent_discount")
+        // relationSet.add("discounts.parent_discount.rule")
+        // relationSet.add("discounts.parent_discount.regions")
+        relationSet.add("shipping_methods")
+        relationSet.add("shipping_address")
+        relationSet.add("region")
+        relationSet.add("region.tax_rates")
+        relations = Array.from(relationSet.values())
+  
+        select = select.filter((v) => !totalFields.includes(v))
+      }
+  
+      return {
+        relations,
+        select,
+        totalsToSelect,
+      }
+    }
+  
+    /**
+   * Creates, updates and sets payment sessions associated with the cart. The
+   * first time the method is called payment sessions will be created for each
+   * provider. Additional calls will ensure that payment sessions have correct
+   * amounts, currencies, etc. as well as make sure to filter payment sessions
+   * that are not available for the cart's region.
+   * @param cartOrCartId - the id of the cart to set payment session for
+   * @return the result of the update operation.
+   */
+  async setPaymentSessions(cartOrCartId: Cart | string): Promise<void> {
+    return await this.atomicPhase_(
+      async (transactionManager: EntityManager) => {
+        const psRepo = transactionManager.getCustomRepository(
+          this.paymentSessionRepository_
+        )
+
+        const cartId =
+          typeof cartOrCartId === `string` ? cartOrCartId : cartOrCartId.id
+
+        const cart = await this.retrieveWithTotals(
+          cartId,
+          {
+            relations: [
+              "items",
+              "items.adjustments",
+              "discounts",
+              "discounts.rule",
+              "gift_cards",
+              "shipping_methods",
+              "billing_address",
+              "shipping_address",
+              "region",
+              "region.tax_rates",
+              "region.payment_providers",
+              "payment_sessions",
+              "customer",
+            ],
+          },
+          { force_taxes: true }
+        )
+
+        const { total, region } = cart
+
+        if (typeof total === "undefined") {
+          throw new MedusaError(
+            MedusaError.Types.UNEXPECTED_STATE,
+            "cart.total must be defined"
+          )
+        }
+
+        // If there are existing payment sessions ensure that these are up to date
+        const seen: string[] = []
+        if (cart.payment_sessions?.length) {
+          await Promise.all(
+            cart.payment_sessions.map(async (paymentSession) => {
+              if (
+                total <= 0 ||
+                !region.payment_providers.find(
+                  ({ id }) => id === paymentSession.provider_id
+                )
+              ) {
+                return this.container.paymentProviderService
+                  .withTransaction(transactionManager)
+                  .deleteSession(paymentSession)
+              } else {
+                seen.push(paymentSession.provider_id)
+                return this.container.paymentProviderService
+                  .withTransaction(transactionManager)
+                  .updateSession(paymentSession, cart)
+              }
+            })
+          )
+        }
+
+        if (total > 0) {
+          // If only one payment session exists, we preselect it
+          if (region.payment_providers.length === 1 && !cart.payment_session) {
+            const paymentProvider = region.payment_providers[0]
+            const paymentSession = await this.container.paymentProviderService
+              .withTransaction(transactionManager)
+              .createSession(paymentProvider.id, cart)
+
+            paymentSession.is_selected = true
+
+            await psRepo.save(paymentSession)
+          } else {
+            await Promise.all(
+              region.payment_providers.map(async (paymentProvider) => {
+                if (!seen.includes(paymentProvider.id)) {
+                  return this.container.paymentProviderService
+                    .withTransaction(transactionManager)
+                    .createSession(paymentProvider.id, cart)
+                }
+                return
+              })
+            )
+          }
+        }
+      }
+    )
+  }
+
+    /**
+   * Gets a cart by id.
+   * @param cartId - the id of the cart to get.
+   * @param options - the options to get a cart
+   * @return the cart document.
+   */
+  async retrieve(
+    cartId: string,
+    options: FindConfig<Cart> = {},
+    totalsConfig: TotalsConfig = {}
+  ): Promise<Cart> {
+    const manager = this.manager_
+    const cartRepo = manager.getCustomRepository(this.cartRepository)
+
+    const { select, relations, totalsToSelect } =
+      this.transformQueryForTotals_(options)
+
+    const query = buildQuery({ id: cartId }, { ...options, select, relations })
+
+    if (relations && relations.length > 0) {
+      query.relations = relations
+    }
+
+    query.select = select?.length ? select : undefined
+
+    const queryRelations = query.relations
+    query.relations = undefined
+    const raw = await cartRepo.findOneWithRelations(queryRelations, query)
+    if (!raw) {
+      throw new MedusaError(
+        MedusaError.Types.NOT_FOUND,
+        `Cart with ${cartId} was not found`
+      )
+    }
+
+    return await this.decorateTotals_(raw, totalsToSelect, totalsConfig)
+  }
+
+  protected async decorateTotals_(
+    cart: Cart,
+    totalsToSelect: TotalField[],
+    options: TotalsConfig = { force_taxes: false }
+  ): Promise<Cart> {
+    const totals: { [K in TotalField]?: number | null } = {}
+
+    for (const key of totalsToSelect) {
+      switch (key) {
+        case "total": {
+          totals.total = await this.container.totalsService.getTotal(cart, {
+            force_taxes: options.force_taxes,
+          })
+          break
+        }
+        case "shipping_total": {
+          totals.shipping_total = await this.container.totalsService.getShippingTotal(
+            cart
+          )
+          break
+        }
+        case "discount_total":
+          totals.discount_total = await this.container.totalsService.getDiscountTotal(
+            cart
+          )
+          break
+        case "tax_total":
+          totals.tax_total = await this.container.totalsService.getTaxTotal(
+            cart,
+            options.force_taxes
+          )
+          break
+        case "gift_card_total": {
+          const giftCardBreakdown = await this.container.totalsService.getGiftCardTotal(
+            cart
+          )
+          totals.gift_card_total = giftCardBreakdown.total
+          totals.gift_card_tax_total = giftCardBreakdown.tax_total
+          break
+        }
+        case "subtotal":
+          totals.subtotal = await this.container.totalsService.getSubtotal(cart)
+          break
+        default:
+          break
+      }
+    }
+
+    return Object.assign(cart, totals)
+  }
+
 
     async update(cartId: string, data: CartUpdateProps): Promise<Cart> {
       return await this.atomicPhase_(

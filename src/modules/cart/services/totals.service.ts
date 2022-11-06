@@ -17,8 +17,10 @@ import { isOrder } from "../../order/types/orders";
 import { calculatePriceTaxAmount } from "@medusajs/medusa/dist/utils";
 import { MedusaError } from "medusa-core-utils"
 import { ShippingMethodTaxLine } from "@medusajs/medusa/dist/models/shipping-method-tax-line";
+import { isDefined } from "@medusajs/medusa/dist/utils";
+import { isCart } from "../types/cart"
 
-type MyhippingMethodTotals = {
+type MyShippingMethodTotals = {
     price: number
     tax_total: number
     total: number
@@ -65,6 +67,11 @@ type MyCalculationContextOptions = {
     exclude_discounts?: boolean
   }
 
+  type MyGetTotalsOptions = {
+    exclude_gift_cards?: boolean
+    force_taxes?: boolean
+  }
+  
 type TotalsServiceProps = {
     manager: EntityManager;
     taxProviderService: TaxProviderService
@@ -84,6 +91,236 @@ export class TotalsService extends MedusaTotalsService {
         this.container = container;
         this.manager = container.manager;
     }
+
+    /**
+   * Gets the totals breakdown for a shipping method. Fetches tax lines if not
+   * already provided.
+   * @param shippingMethod - the shipping method to get totals breakdown for.
+   * @param cartOrOrder - the cart or order to use as context for the breakdown
+   * @param opts - options for what should be included
+   * @returns An object that breaks down the totals for the shipping method
+   */
+  async getShippingMethodTotals(
+    shippingMethod: ShippingMethod,
+    cartOrOrder: Cart | Order,
+    opts: MyGetShippingMethodTotalsOptions = {}
+  ): Promise<MyShippingMethodTotals> {
+    const calculationContext =
+      opts.calculation_context ||
+      (await this.getCalculationContext(cartOrOrder, {
+        exclude_shipping: true,
+      }))
+    calculationContext.shipping_methods = [shippingMethod]
+
+    const totals = {
+      price: shippingMethod.price,
+      original_total: shippingMethod.price,
+      total: shippingMethod.price,
+      subtotal: shippingMethod.price,
+      original_tax_total: 0,
+      tax_total: 0,
+      tax_lines: shippingMethod.tax_lines || [],
+    }
+
+    if (opts.include_tax) {
+      if (isOrder(cartOrOrder) && cartOrOrder.tax_rate != null) {
+        totals.original_tax_total = Math.round(
+          totals.price * (cartOrOrder.tax_rate / 100)
+        )
+        totals.tax_total = Math.round(
+          totals.price * (cartOrOrder.tax_rate / 100)
+        )
+      } else if (totals.tax_lines.length === 0) {
+        const orderLines = await this.taxProviderService_
+          .withTransaction(this.manager_)
+          .getTaxLines(cartOrOrder.items, calculationContext)
+
+        totals.tax_lines = orderLines.filter((ol) => {
+          if ("shipping_method_id" in ol) {
+            return ol.shipping_method_id === shippingMethod.id
+          }
+          return false
+        }) as ShippingMethodTaxLine[]
+
+        if (totals.tax_lines.length === 0 && isOrder(cartOrOrder)) {
+          throw new MedusaError(
+            MedusaError.Types.UNEXPECTED_STATE,
+            "Tax Lines must be joined on shipping method to calculate taxes"
+          )
+        }
+      }
+
+      if (totals.tax_lines.length > 0) {
+        const includesTax =
+          this.featureFlagRouter_.isFeatureEnabled(
+            TaxInclusivePricingFeatureFlag.key
+          ) && shippingMethod.includes_tax
+
+        totals.original_tax_total =
+          await this.taxCalculationStrategy_.calculate(
+            [],
+            totals.tax_lines,
+            calculationContext
+          )
+        totals.tax_total = totals.original_tax_total
+
+        if (includesTax) {
+          totals.subtotal -= totals.tax_total
+        } else {
+          totals.original_total += totals.original_tax_total
+          totals.total += totals.tax_total
+        }
+      }
+    }
+
+    const hasFreeShipping = cartOrOrder.discounts?.some(
+      (d) => d.rule.type === DiscountRuleType.FREE_SHIPPING
+    )
+
+    if (hasFreeShipping) {
+      totals.total = 0
+      totals.subtotal = 0
+      totals.tax_total = 0
+    }
+
+    return totals
+  }
+    /**
+   * Calculates shipping total
+   * @param cartOrOrder - cart or order to calculate subtotal for
+   * @return shipping total
+   */
+  async getShippingTotal(cartOrOrder: Cart | Order): Promise<number> {
+    const { shipping_methods } = cartOrOrder
+
+    let total = 0
+    for (const shippingMethod of shipping_methods) {
+      const totals = await this.getShippingMethodTotals(
+        shippingMethod,
+        cartOrOrder,
+        {
+          include_tax: true,
+        }
+      )
+
+      total += totals.subtotal
+    }
+
+    return total
+  }
+
+    /**
+   * Calculates tax total
+   * Currently based on the Danish tax system
+   * @param cartOrOrder - cart or order to calculate tax total for
+   * @param forceTaxes - whether taxes should be calculated regardless
+   *   of region settings
+   * @return tax total
+   */
+  async getTaxTotal(
+    cartOrOrder: Cart | Order,
+    forceTaxes = false
+  ): Promise<number | null> {
+    if (
+      isCart(cartOrOrder) &&
+      !forceTaxes &&
+      !cartOrOrder.region.automatic_taxes
+    ) {
+      return null
+    }
+
+    const calculationContext = await this.getCalculationContext(cartOrOrder)
+    const giftCardTotal = await this.getGiftCardTotal(cartOrOrder)
+
+    let taxLines: (ShippingMethodTaxLine | LineItemTaxLine)[]
+    if (isOrder(cartOrOrder)) {
+      const taxLinesJoined = cartOrOrder.items.every((i) =>
+        isDefined(i.tax_lines)
+      )
+      if (!taxLinesJoined) {
+        throw new MedusaError(
+          MedusaError.Types.UNEXPECTED_STATE,
+          "Order tax calculations must have tax lines joined on line items"
+        )
+      }
+
+      if (cartOrOrder.tax_rate === null) {
+        taxLines = cartOrOrder.items.flatMap((li) => li.tax_lines)
+
+        const shippingTaxLines = cartOrOrder.shipping_methods.flatMap(
+          (sm) => sm.tax_lines
+        )
+
+        taxLines = taxLines.concat(shippingTaxLines)
+      } else {
+        const subtotal = await this.getSubtotal(cartOrOrder)
+        const shippingTotal = await this.getShippingTotal(cartOrOrder)
+        const discountTotal = await this.getDiscountTotal(cartOrOrder)
+        return this.rounded(
+          (subtotal - discountTotal - giftCardTotal.total + shippingTotal) *
+            (cartOrOrder.tax_rate / 100)
+        )
+      }
+    } else {
+      taxLines = await this.taxProviderService_
+        .withTransaction(this.manager_)
+        .getTaxLines(cartOrOrder.items, calculationContext)
+
+      if (cartOrOrder.type === "swap") {
+        const returnTaxLines = cartOrOrder.items.flatMap((i) => {
+          if (i.is_return) {
+            if (typeof i.tax_lines === "undefined") {
+              throw new MedusaError(
+                MedusaError.Types.UNEXPECTED_STATE,
+                "Return Line Items must join tax lines"
+              )
+            }
+            return i.tax_lines
+          }
+
+          return []
+        })
+
+        taxLines = taxLines.concat(returnTaxLines)
+      }
+    }
+
+    const toReturn = await this.taxCalculationStrategy_.calculate(
+      cartOrOrder.items,
+      taxLines,
+      calculationContext
+    )
+
+    if (cartOrOrder.region.gift_cards_taxable) {
+      return this.rounded(toReturn - giftCardTotal.tax_total)
+    }
+
+    return this.rounded(toReturn)
+  }
+
+    /**
+   * Calculates subtotal of a given cart or order.
+   * @param cartOrOrder - object to calculate total for
+   * @param options - options to calculate by
+   * @return the calculated subtotal
+   */
+  async getTotal(
+    cartOrOrder: Cart | Order,
+    options: MyGetTotalsOptions = {}
+  ): Promise<number> {
+    const subtotal = await this.getSubtotal(cartOrOrder)
+    const taxTotal = 
+      (await this.getTaxTotal(cartOrOrder, options.force_taxes)) || 0
+    const discountTotal = await this.getDiscountTotal(cartOrOrder)
+    const giftCardTotal = options.exclude_gift_cards
+      ? { total: 0 }
+      : await this.getGiftCardTotal(cartOrOrder)
+    const shippingTotal = await this.getShippingTotal(cartOrOrder)
+
+    return (
+      subtotal + taxTotal + shippingTotal - discountTotal - giftCardTotal.total
+    )
+  }
 
   
     /**
@@ -542,7 +779,7 @@ export class TotalsService extends MedusaTotalsService {
     shippingMethod: ShippingMethod,
     cartOrOrder: Cart | Order,
     opts: MyGetShippingMethodTotalsOptions = {}
-  ): Promise<MyhippingMethodTotals> {
+  ): Promise<MyShippingMethodTotals> {
     const calculationContext =
       opts.calculation_context ||
       (await this.getCalculationContext(cartOrOrder, {

@@ -2,7 +2,12 @@ import { GiftCard } from "@medusajs/medusa/dist/models/gift-card";
 import { CartType } from "@medusajs/medusa/dist/models/cart";
 import { Discount } from "../../discount/entities/discount.entity";
 import { AddressPayload } from "../../customer/v1/types/address";
+import { Cart } from "../entities/cart.entity";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function isCart(object: any): object is Cart {
+  return object.object === "cart"
+}
 export type CartCreateProps = {
     region_id?: string
     email?: string

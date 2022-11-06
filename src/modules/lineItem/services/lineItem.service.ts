@@ -15,6 +15,10 @@ import { LineItem } from "../entities/lineItem.entity";
 import { FindConfig, Selector } from "@medusajs/medusa/dist/types/common"
 import { buildQuery, setMetadata } from "@medusajs/medusa/dist/utils"
 import { MedusaError } from "medusa-core-utils";
+import { Cart } from '../../cart/entities/cart.entity';
+import TaxInclusivePricingFeatureFlag from "@medusajs/medusa/dist/loaders/feature-flags/tax-inclusive-pricing"
+import OrderEditingFeatureFlag from "@medusajs/medusa/dist/loaders/feature-flags/order-editing"
+import { LineItemAdjustment } from '@medusajs/medusa/dist/models/line-item-adjustment';
 
 type InjectedDependencies = {
     manager: EntityManager
@@ -45,6 +49,115 @@ export class LineItemService extends MedusaLineItemService {
         this.lineItemRepository = container.lineItemRepository;
     }
 
+    /**
+   * Create a line item
+   * @param data - the line item object to create
+   * @return the created line item
+   */
+  async create(data: Partial<LineItem>): Promise<LineItem> {
+    return await this.atomicPhase_(
+      async (transactionManager: EntityManager) => {
+        const lineItemRepository = transactionManager.getCustomRepository(
+          this.lineItemRepository
+        )
+
+        const lineItem = lineItemRepository.create(data)
+        return await lineItemRepository.save(lineItem)
+      }
+    )
+  }
+    async generate(
+      variantId: string,
+      regionId: string,
+      quantity: number,
+      context: {
+        unit_price?: number
+        includes_tax?: boolean
+        metadata?: Record<string, unknown>
+        customer_id?: string
+        order_edit_id?: string
+        cart?: Cart
+      } = {}
+    ): Promise<LineItem> {
+      return await this.atomicPhase_(
+        async (transactionManager: EntityManager) => {
+          const [variant, region] = await Promise.all([
+            this.container.productVariantService
+              .withTransaction(transactionManager)
+              .retrieve(variantId, {
+                relations: ["product"],
+              }),
+            this.container.regionService
+              .withTransaction(transactionManager)
+              .retrieve(regionId),
+          ])
+  
+          let unit_price = Number(context.unit_price) < 0 ? 0 : context.unit_price
+  
+          let unitPriceIncludesTax = false
+  
+          let shouldMerge = false
+  
+          if (context.unit_price === undefined || context.unit_price === null) {
+            shouldMerge = true
+            const variantPricing = await this.pricingService_
+              .withTransaction(transactionManager)
+              .getProductVariantPricingById(variant.id, {
+                region_id: region.id,
+                quantity: quantity,
+                customer_id: context?.customer_id,
+                include_discount_prices: true,
+              })
+  
+            unitPriceIncludesTax = !!variantPricing.calculated_price_includes_tax
+  
+            unit_price = variantPricing.calculated_price ?? undefined
+          }
+  
+          const rawLineItem: Partial<LineItem> = {
+            unit_price: unit_price,
+            title: variant.product.title,
+            description: variant.title,
+            thumbnail: variant.product.thumbnail,
+            variant_id: variant.id,
+            quantity: quantity || 1,
+            allow_discounts: variant.product.discountable,
+            is_giftcard: variant.product.is_giftcard,
+            metadata: context?.metadata || {},
+            should_merge: shouldMerge,
+          }
+  
+          if (
+            this.featureFlagRouter_.isFeatureEnabled(
+              TaxInclusivePricingFeatureFlag.key
+            )
+          ) {
+            rawLineItem.includes_tax = unitPriceIncludesTax
+          }
+  
+          if (
+            this.featureFlagRouter_.isFeatureEnabled(OrderEditingFeatureFlag.key)
+          ) {
+            rawLineItem.order_edit_id = context.order_edit_id || null
+          }
+  
+          const lineItemRepo = transactionManager.getCustomRepository(
+            this.lineItemRepository
+          )
+          const lineItem = lineItemRepo.create(rawLineItem)
+  
+          if (context.cart) {
+            const adjustments = await this.lineItemAdjustmentService_
+              .withTransaction(transactionManager)
+              .generateAdjustments(context.cart, lineItem, { variant })
+            lineItem.adjustments = adjustments as unknown as LineItemAdjustment[]
+          }
+  
+          return lineItem
+        }
+      )
+    }
+  
     async list(
         selector: Selector<LineItem>,
         config: FindConfig<LineItem> = {
