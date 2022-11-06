@@ -8,6 +8,18 @@ import { Cart } from "../entities/cart.entity";
 export function isCart(object: any): object is Cart {
   return object.object === "cart"
 }
+
+// TODO: Probably worth moving to `./line-item` instead
+export type LineItemUpdate = {
+  title?: string
+  unit_price?: number
+  quantity?: number
+  metadata?: Record<string, unknown>
+  region_id?: string
+  variant_id?: string
+}
+
+
 export type CartCreateProps = {
     region_id?: string
     email?: string

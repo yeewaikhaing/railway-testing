@@ -49,7 +49,7 @@ export class LineItemService extends MedusaLineItemService {
         this.lineItemRepository = container.lineItemRepository;
     }
 
-    /**
+  /**
    * Create a line item
    * @param data - the line item object to create
    * @return the created line item

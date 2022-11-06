@@ -10,6 +10,7 @@ import { ShippingOptionRequirementRepository } from '@medusajs/medusa/dist/repos
 import { ShippingOption } from '../entities/shippingOption.entity';
 import { Cart } from '../../cart/entities/cart.entity';
 import { Order } from '../../order/order.entity';
+import { ShippingMethod } from '../entities/shippingMethod.entity';
 
 type InjectedDependencies = {
     manager: EntityManager
@@ -36,6 +37,24 @@ export class ShippingOptionService extends MedusaShippingOptionService {
         this.manager = container.manager;
         this.shippingOptionRepository = container.shippingOptionRepository;
     }
+
+     /**
+   * Removes a given shipping method
+   * @param {ShippingMethod | Array<ShippingMethod>} shippingMethods - the shipping method to remove
+   * @returns removed shipping methods
+   */
+  async deleteShippingMethods(
+    shippingMethods: ShippingMethod | ShippingMethod[]
+  ): Promise<ShippingMethod[]> {
+    const removeEntities: ShippingMethod[] = Array.isArray(shippingMethods)
+      ? shippingMethods
+      : [shippingMethods]
+
+    return await this.atomicPhase_(async (manager) => {
+      const methodRepo = manager.getCustomRepository(this.container.shippingMethodRepository)
+      return await methodRepo.remove(removeEntities)
+    })
+  }
 
 
     /**

@@ -26,7 +26,7 @@ import { CustomerService } from "../../customer/v1/services/customer.service";
 import { DiscountService } from "../../discount/services/discount.service";
 import LineItemAdjustmentService from "@medusajs/medusa/dist/services/line-item-adjustment";
 import { default as MedusaCartService } from '@medusajs/medusa/dist/services/cart';
-import { CartCreateProps, CartUpdateProps } from "../types/cart";
+import { CartCreateProps, CartUpdateProps, LineItemUpdate } from "../types/cart";
 import { Cart } from "../entities/cart.entity";
 import { buildQuery, isDefined, setMetadata } from "@medusajs/medusa/dist/utils"
 import { FindConfig } from '@medusajs/medusa/dist/types/common';
@@ -84,6 +84,133 @@ export class CartService extends MedusaCartService {
         this.manager = container.manager;
         this.cartRepository = container.cartRepository;
     }
+
+    /**
+   * Updates a cart's existing line item.
+   * @param cartId - the id of the cart to update
+   * @param lineItemId - the id of the line item to update.
+   * @param lineItemUpdate - the line item to update. Must include an id field.
+   * @return the result of the update operation
+   */
+  async updateLineItem(
+    cartId: string,
+    lineItemId: string,
+    lineItemUpdate: LineItemUpdate
+  ): Promise<Cart> {
+    return await this.atomicPhase_(
+      async (transactionManager: EntityManager) => {
+        const cart = await this.retrieve(cartId, {
+          relations: ["items", "items.adjustments", "payment_sessions"],
+        })
+
+        // Ensure that the line item exists in the cart
+        const lineItemExists = cart.items.find((i) => i.id === lineItemId)
+        if (!lineItemExists) {
+          throw new MedusaError(
+            MedusaError.Types.INVALID_DATA,
+            "A line item with the provided id doesn't exist in the cart"
+          )
+        }
+
+        if (lineItemUpdate.quantity) {
+          const hasInventory = await this.inventoryService_
+            .withTransaction(transactionManager)
+            .confirmInventory(
+              lineItemExists.variant_id,
+              lineItemUpdate.quantity
+            )
+
+          if (!hasInventory) {
+            throw new MedusaError(
+              MedusaError.Types.NOT_ALLOWED,
+              "Inventory doesn't cover the desired quantity"
+            )
+          }
+        }
+
+        await this.container.lineItemService
+          .withTransaction(transactionManager)
+          .update(lineItemId, lineItemUpdate)
+
+        const updatedCart = await this.retrieve(cartId, {
+          relations: ["items", "discounts", "discounts.rule", "region"],
+        })
+
+        await this.refreshAdjustments_(updatedCart)
+
+        // Update the line item
+        await this.eventBus_
+          .withTransaction(transactionManager)
+          .emit(CartService.Events.UPDATED, updatedCart)
+
+        return updatedCart
+      }
+    )
+  }
+
+     /**
+   * Removes a line item from the cart.
+   * @param cartId - the id of the cart that we will remove from
+   * @param lineItemId - the line item to remove.
+   * @return the result of the update operation
+   */
+  async removeLineItem(cartId: string, lineItemId: string): Promise<Cart> {
+    return await this.atomicPhase_(
+      async (transactionManager: EntityManager) => {
+        const cart = await this.retrieve(cartId, {
+          relations: [
+            "items",
+            "items.variant",
+            "items.variant.product",
+            "payment_sessions",
+          ],
+        })
+
+        const lineItem = cart.items.find((item) => item.id === lineItemId)
+        if (!lineItem) {
+          return cart
+        }
+
+        // Remove shipping methods if they are not needed
+        if (cart.shipping_methods?.length) {
+          await this.container.shippingOptionService
+            .withTransaction(transactionManager)
+            .deleteShippingMethods(cart.shipping_methods)
+        }
+
+        const lineItemRepository = transactionManager.getCustomRepository(
+          this.container.lineItemRepository
+        )
+        await lineItemRepository.update(
+          {
+            id: In(cart.items.map((item) => item.id)),
+          },
+          {
+            has_shipping: false,
+          }
+        )
+
+        await this.container.lineItemService
+          .withTransaction(transactionManager)
+          .delete(lineItem.id)
+
+        const result = await this.retrieve(cartId, {
+          relations: ["items", "discounts", "discounts.rule", "region"],
+        })
+
+        await this.refreshAdjustments_(result)
+
+        // Notify subscribers
+        await this.eventBus_
+          .withTransaction(transactionManager)
+          .emit(CartService.Events.UPDATED, {
+            id: cart.id,
+          })
+
+        return this.retrieve(cartId)
+      }
+    )
+  }
 
     /**
    * Adds a line item to the cart.
@@ -402,7 +529,7 @@ export class CartService extends MedusaCartService {
     options: FindConfig<Cart> = {},
     totalsConfig: TotalsConfig = {}
   ): Promise<Cart> {
-    const manager = this.manager_
+    const manager = this.manager
     const cartRepo = manager.getCustomRepository(this.cartRepository)
 
     const { select, relations, totalsToSelect } =

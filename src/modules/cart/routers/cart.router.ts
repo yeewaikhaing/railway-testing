@@ -9,6 +9,8 @@ import createCart from '../handlers/create-cart';
 import getCart from '../handlers/get-cart';
 import { FindParams } from '@medusajs/medusa/dist/types/common';
 import createLineItem from '../handlers/create-line-item';
+import deleteLineItem from '../handlers/delete-line-item';
+import updateLineItem from '../handlers/update-line-item';
 
 export const defaultStoreCartFields: (keyof Cart)[] = []
 
@@ -63,14 +65,36 @@ export const defaultStoreCartRelations = [
       /**
        * Add a Line Item
        */
-       {
+      {
         requiredAuth: true,
         path: '/store/v1/carts/:id/line-items',
         method: 'post',
         handlers: [
             middlewares.wrap(createLineItem)
         ],
-    },
+      },
+      /**
+       * Delete a Line Item
+       */
+       {
+        requiredAuth: true,
+        path: '/store/v1/carts/:id/line-items/:line_id',
+        method: 'delete',
+        handlers: [
+            middlewares.wrap(deleteLineItem)
+        ],
+      },
+      /**
+       * Update a Line Item
+       */
+       {
+        requiredAuth: true,
+        path: '/store/v1/carts/:id/line-items/:line_id',
+        method: 'post',
+        handlers: [
+            middlewares.wrap(updateLineItem)
+        ],
+      },
     ] 
 })
 export class CartRouter {
