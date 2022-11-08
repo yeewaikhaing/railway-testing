@@ -8,7 +8,6 @@ import { AddressRepository } from "../../customer/v1/repositories/address.reposi
 import { PaymentSessionRepository } from "@medusajs/medusa/dist/repositories/payment-session";
 import { LineItemRepository } from "../../lineItem/repositories/lineItem.repository";
 import { 
-    CustomShippingOptionService, 
     EventBusService, 
     GiftCardService, 
     InventoryService,  
@@ -32,11 +31,14 @@ import { buildQuery, isDefined, setMetadata } from "@medusajs/medusa/dist/utils"
 import { FindConfig } from '@medusajs/medusa/dist/types/common';
 import { TotalsService } from './totals.service';
 import { LineItem } from '../../lineItem/entities/lineItem.entity';
-import { DiscountRuleType } from '@medusajs/medusa';
+import { DiscountRuleType } from '@medusajs/medusa/dist/models/discount-rule';
 import { Discount } from '../../discount/entities/discount.entity';
 import { ShippingOptionService } from '../../shipping/services/shippingOption.service';
 import { TotalField } from '../types/totals';
 import { PaymentProviderService } from '../../payment/services/paymentProvider.service';
+import { ShippingMethod } from '../../shipping/entities/shippingMethod.entity';
+import { CustomShippingOptionService } from '../../shipping/services/customShippingOption.service';
+import { CustomShippingOption } from '../../shipping/entities/customShippingOption.entity';
 
 type TotalsConfig = {
     force_taxes?: boolean
@@ -84,7 +86,177 @@ export class CartService extends MedusaCartService {
         this.manager = container.manager;
         this.cartRepository = container.cartRepository;
     }
+/**
+   * Checks if a given line item has a shipping method that can fulfill it.
+   * Returns true if all products in the cart can be fulfilled with the current
+   * shipping methods.
+   * @param shippingMethods - the set of shipping methods to check from
+   * @param lineItem - the line item
+   * @return boolean representing whether shipping method is validated
+   */
+ protected validateLineItemShipping_(
+  shippingMethods: ShippingMethod[],
+  lineItem: LineItem
+): boolean {
+  if (!lineItem.variant_id) {
+    return true
+  }
 
+  if (
+    shippingMethods &&
+    shippingMethods.length &&
+    lineItem.variant &&
+    lineItem.variant.product
+  ) {
+    const productProfile = lineItem.variant.product.profile_id
+    const selectedProfiles = shippingMethods.map(
+      ({ shipping_option }) => shipping_option.profile_id
+    )
+    return selectedProfiles.includes(productProfile)
+  }
+
+  return false
+}
+
+    
+    /**
+   * Adds the shipping method to the list of shipping methods associated with
+   * the cart. Shipping Methods are the ways that an order is shipped, whereas a
+   * Shipping Option is a possible way to ship an order. Shipping Methods may
+   * also have additional details in the data field such as an id for a package
+   * shop.
+   * @param cartId - the id of the cart to add shipping method to
+   * @param optionId - id of shipping option to add as valid method
+   * @param data - the fulmillment data for the method
+   * @return the result of the update operation
+   */
+  async addShippingMethod(
+    cartId: string,
+    optionId: string,
+    data: Record<string, unknown> = {}
+  ): Promise<Cart> {
+    return await this.atomicPhase_(
+      async (transactionManager: EntityManager) => {
+        const cart = await this.retrieve(cartId, {
+          select: ["subtotal"],
+          relations: [
+            "shipping_methods",
+            "discounts",
+            "discounts.rule",
+            "shipping_methods.shipping_option",
+            "items",
+            "items.variant",
+            "payment_sessions",
+            "items.variant.product",
+          ],
+        })
+
+        const cartCustomShippingOptions =
+          await this.container.customShippingOptionService
+            .withTransaction(transactionManager)
+            .list({ cart_id: cart.id })
+
+        const customShippingOption = this.findCustomShippingOption(
+          cartCustomShippingOptions,
+          optionId
+        )
+
+        const { shipping_methods } = cart
+
+        /**
+         * If we have a custom shipping option configured we want the price
+         * override to take effect and do not want `validateCartOption` to check
+         * if requirements are met, hence we are not passing the entire cart, but
+         * just the id.
+         */
+        const shippingMethodConfig = customShippingOption
+          ? { cart_id: cart.id, price: customShippingOption.price }
+          : { cart }
+
+        const newShippingMethod = await this.container.shippingOptionService
+          .withTransaction(transactionManager)
+          .createShippingMethod(optionId, data, shippingMethodConfig)
+
+        const methods = [newShippingMethod]
+        if (shipping_methods?.length) {
+          const shippingOptionServiceTx =
+            this.container.shippingOptionService.withTransaction(transactionManager)
+
+          for (const shippingMethod of shipping_methods) {
+            if (
+              shippingMethod.shipping_option.profile_id ===
+              newShippingMethod.shipping_option.profile_id
+            ) {
+              await shippingOptionServiceTx.deleteShippingMethods(
+                shippingMethod
+              )
+            } else {
+              methods.push(shippingMethod)
+            }
+          }
+        }
+
+        if (cart.items?.length) {
+          const lineItemServiceTx =
+            this.container.lineItemService.withTransaction(transactionManager)
+
+          await Promise.all(
+            cart.items.map(async (item) => {
+              return lineItemServiceTx.update(item.id, {
+                has_shipping: this.validateLineItemShipping_(methods, item),
+              })
+            })
+          )
+        }
+
+        const updatedCart = await this.retrieve(cartId, {
+          relations: ["discounts", "discounts.rule", "shipping_methods"],
+        })
+
+        // if cart has freeshipping, adjust price
+        if (
+          updatedCart.discounts.some(
+            ({ rule }) => rule.type === DiscountRuleType.FREE_SHIPPING
+          )
+        ) {
+          await this.adjustFreeShipping_(updatedCart, true)
+        }
+
+        await this.eventBus_
+          .withTransaction(transactionManager)
+          .emit(CartService.Events.UPDATED, updatedCart)
+        return updatedCart
+      },
+      "SERIALIZABLE"
+    )
+  }
+
+   /**
+   * Finds the cart's custom shipping options based on the passed option id.
+   * throws if custom options is not empty and no shipping option corresponds to optionId
+   * @param cartCustomShippingOptions - the cart's custom shipping options
+   * @param optionId - id of the normal or custom shipping option to find in the cartCustomShippingOptions
+   * @return custom shipping option
+   */
+    findCustomShippingOption(
+      cartCustomShippingOptions: CustomShippingOption[],
+      optionId: string
+    ): CustomShippingOption | undefined {
+      const customOption = cartCustomShippingOptions?.find(
+        (cso) => cso.shipping_option_id === optionId
+      )
+      const hasCustomOptions = cartCustomShippingOptions?.length
+  
+      if (hasCustomOptions && !customOption) {
+        throw new MedusaError(
+          MedusaError.Types.INVALID_DATA,
+          "Wrong shipping option"
+        )
+      }
+  
+      return customOption
+    }
+  
     /**
    * Updates a cart's existing line item.
    * @param cartId - the id of the cart to update

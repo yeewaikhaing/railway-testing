@@ -11,6 +11,7 @@ import { FindParams } from '@medusajs/medusa/dist/types/common';
 import createLineItem from '../handlers/create-line-item';
 import deleteLineItem from '../handlers/delete-line-item';
 import updateLineItem from '../handlers/update-line-item';
+import addShippingMethod from '../handlers/add-shipping-method';
 
 export const defaultStoreCartFields: (keyof Cart)[] = []
 
@@ -95,6 +96,17 @@ export const defaultStoreCartRelations = [
             middlewares.wrap(updateLineItem)
         ],
       },
+      /**
+       * Adds a Shipping Method to the Cart
+       */
+       {
+        requiredAuth: true,
+        path: '/store/v1/carts/:id/shipping-methods',
+        method: 'post',
+        handlers: [
+            middlewares.wrap(addShippingMethod)
+        ],
+      }
     ] 
 })
 export class CartRouter {

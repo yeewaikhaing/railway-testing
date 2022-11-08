@@ -13,7 +13,8 @@ import {
   FilterableProductProps ,
   FindProductConfig,
   UpdateProductInput,
-  ProductOptionInput
+  ProductOptionInput,
+  ProductSelector
 } from '../types/product';
 import { Category } from '../../category/entities/category.entity';
 import {ProductRepository, FindWithoutRelationsOptions} from '../repositories/product.repository';
@@ -65,6 +66,27 @@ export class ProductService extends MedusaProductService {
   
       return await productTagRepo.listTagsByUsage(count)
     }
+
+  /**
+   * Lists products based on the provided parameters.
+   * @param selector - an object that defines rules to filter products
+   *   by
+   * @param config - object that defines the scope for what should be
+   *   returned
+   * @return the result of the find operation
+   */
+   async list(
+    selector: ProductSelector,
+    config: FindProductConfig = {
+      relations: [],
+      skip: 0,
+      take: 20,
+      include_discount_prices: false,
+    }
+  ): Promise<Product[]> {
+    const [products] = await this.listAndCount(selector, config)
+    return products
+  }
    /**
    * Deletes a product from a given product id. The product's associated
    * variants will also be deleted.

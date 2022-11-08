@@ -12,6 +12,7 @@ import { Product } from "../entities/product.entity"
 import {
   DateComparisonOperator,
   FindConfig,
+  Selector,
   StringComparisonOperator
 } from "@medusajs/medusa/dist/types/common"
 
@@ -19,6 +20,19 @@ import { PriceListLoadConfig } from "./price-list";
 import {optionalBooleanMapper} from '@medusajs/medusa/dist/utils/validators/is-boolean';
 import {IsType } from '@medusajs/medusa/dist/utils/validators/is-type';
 import { ProductOptionValue } from "@medusajs/medusa/dist/models/product-option-value";
+import { FindOperator } from "typeorm"
+import { PriceList, SalesChannel } from "@medusajs/medusa/dist/models"
+
+
+export type ProductSelector =
+  | FilterableProductProps
+  | (Selector<Product> & {
+      q?: string
+      discount_condition_id?: string
+      price_list_id?: string[] | FindOperator<PriceList>
+      sales_channel_id?: string[] | FindOperator<SalesChannel>
+    })
+
 
 /**
  * API Level DTOs + Validation rules
