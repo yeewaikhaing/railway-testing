@@ -736,6 +736,101 @@ export class CartService extends MedusaCartService {
     )
   }
 
+  /**
+   * Sets a payment method for a cart.
+   * @param cartId - the id of the cart to add payment method to
+   * @param providerId - the id of the provider to be set to the cart
+   * @return result of update operation
+   */
+   async setPaymentSession(cartId: string, providerId: string): Promise<Cart> {
+    return await this.atomicPhase_(
+      async (transactionManager: EntityManager) => {
+        const psRepo = transactionManager.getCustomRepository(
+          this.container.paymentSessionRepository
+        )
+
+        const cart = await this.retrieveWithTotals(cartId, {
+          relations: ["region", "region.payment_providers", "payment_sessions"],
+        })
+
+        // The region must have the provider id in its providers array
+        if (
+          providerId !== "system" &&
+          !(
+            cart.region.payment_providers.length &&
+            cart.region.payment_providers.find(({ id }) => providerId === id)
+          )
+        ) {
+          throw new MedusaError(
+            MedusaError.Types.NOT_ALLOWED,
+            `The payment method is not available in this region`
+          )
+        }
+
+        await Promise.all(
+          cart.payment_sessions.map(async (paymentSession) => {
+            return psRepo.save({ ...paymentSession, is_selected: null })
+          })
+        )
+
+        const paymentSession = cart.payment_sessions.find(
+          (ps) => ps.provider_id === providerId
+        )
+
+        if (!paymentSession) {
+          throw new MedusaError(
+            MedusaError.Types.UNEXPECTED_STATE,
+            "Could not find payment session"
+          )
+        }
+
+        paymentSession.is_selected = true
+
+        await psRepo.save(paymentSession)
+
+        const updatedCart = await this.retrieve(cartId)
+
+        await this.eventBus_
+          .withTransaction(transactionManager)
+          .emit(CartService.Events.UPDATED, updatedCart)
+        return updatedCart
+      },
+      "SERIALIZABLE"
+    )
+  }
+
+  /**
+   * Updates the currently selected payment session.
+   * @param cartId - the id of the cart to update the payment session for
+   * @param update - the data to update the payment session with
+   * @return the resulting cart
+   */
+   async updatePaymentSession(
+    cartId: string,
+    update: Record<string, unknown>
+  ): Promise<Cart> {
+    return await this.atomicPhase_(
+      async (transactionManager: EntityManager) => {
+        const cart = await this.retrieve(cartId, {
+          relations: ["payment_sessions"],
+        })
+
+        if (cart.payment_session) {
+          
+          await this.container.paymentProviderService
+            .withTransaction(transactionManager)
+            .updateSessionData(cart.payment_session, update)
+        }
+
+        const updatedCart = await this.retrieve(cart.id)
+
+        await this.eventBus_
+          .withTransaction(transactionManager)
+          .emit(CartService.Events.UPDATED, updatedCart)
+        return updatedCart
+      }
+    )
+  }
     /**
    * Gets a cart by id.
    * @param cartId - the id of the cart to get.

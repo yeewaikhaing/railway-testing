@@ -14,6 +14,7 @@ import updateLineItem from '../handlers/update-line-item';
 import addShippingMethod from '../handlers/add-shipping-method';
 import removeDiscount from '../handlers/remove-discount';
 import createPaymentSession from '../handlers/create-payment-session';
+import updatePaymentSession from '../handlers/update-payment-session';
 
 export const defaultStoreCartFields: (keyof Cart)[] = []
 
@@ -129,6 +130,17 @@ export const defaultStoreCartRelations = [
         method: 'post',
         handlers: [
             middlewares.wrap(createPaymentSession)
+        ],
+      },
+      /**
+       * Updates a Payment Session with additional data.
+       */
+       {
+        requiredAuth: false,
+        path: '/store/v1/carts/:id/payment-sessions/:provider_id',
+        method: 'post',
+        handlers: [
+            middlewares.wrap(updatePaymentSession)
         ],
       },
     ] 

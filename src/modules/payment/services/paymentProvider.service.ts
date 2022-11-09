@@ -138,9 +138,36 @@ export class PaymentProviderService extends MedusaPaymentProviderService {
     return await this.atomicPhase_(async (transactionManager) => {
       const session = await this.retrieveSession(paymentSession.id)
       const provider = this.retrieveProvider(paymentSession.provider_id)
+     // console.log("session in updateSession() =>", session);
+      
       session.data = await provider
         .withTransaction(transactionManager)
         .updatePayment(paymentSession.data, cart)
+
+      const sessionRepo = transactionManager.getCustomRepository(
+        this.container.paymentSessionRepository
+      )
+      return await sessionRepo.save(session)
+    })
+  }
+
+  async updateSessionData(
+    paymentSession: PaymentSession,
+    data: Record<string, unknown>
+  ): Promise<PaymentSession> {
+    return await this.atomicPhase_(async (transactionManager) => {
+      const session = await this.retrieveSession(paymentSession.id)
+
+     // console.log("session => ", session);
+      
+      const provider = this.retrieveProvider(paymentSession.provider_id)
+
+     
+      session.data = await provider
+        .withTransaction(transactionManager)
+        .updatePaymentData(paymentSession.data, data)
+      
+        session.status = paymentSession.status
 
       const sessionRepo = transactionManager.getCustomRepository(
         this.container.paymentSessionRepository

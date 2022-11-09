@@ -77,6 +77,8 @@ export default async (req, res) => {
     let inProgress = true
     let err: unknown = false
 
+    console.log("idempotencyKey.recovery_point =>", idempotencyKey.recovery_point);
+    
     while (inProgress) {
       switch (idempotencyKey.recovery_point) {
         case "started": {
@@ -131,9 +133,10 @@ export default async (req, res) => {
       }
     }
 
-    res.status(idempotencyKey.response_code).json(idempotencyKey.response_body)
+   res.status(idempotencyKey.response_code).json(idempotencyKey.response_body)
   } catch (e) {
     console.log(e)
     throw e
   }
+  //res.status(200).send();
 }
