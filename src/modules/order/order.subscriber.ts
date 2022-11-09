@@ -3,8 +3,8 @@ import { LineItem, OrderStatus } from '@medusajs/medusa';
 
 import { EntityManager } from "typeorm";
 import { LineItemRepository } from '@medusajs/medusa/dist/repositories/line-item';
-import { Order } from './order.entity';
-import { OrderRepository } from "./order.repository";
+import { Order } from './entities/order.entity';
+import { OrderRepository } from "./repositories/order.repository";
 import { PaymentRepository } from "@medusajs/medusa/dist/repositories/payment";
 import { Product } from "../product/entities/product.entity";
 import { ProductService } from './../product/services/product.service';

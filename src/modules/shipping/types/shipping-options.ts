@@ -1,7 +1,7 @@
 import { ShippingOptionPriceType } from "@medusajs/medusa/dist/models/shipping-option";
 import { ShippingOptionRequirement } from "@medusajs/medusa/dist/models/shipping-option-requirement";
 import { Cart } from "../../cart/entities/cart.entity";
-import { Order } from "../../order/order.entity";
+import { Order } from "../../order/entities/order.entity";
 
 export type CreateShippingMethod = {
     data?: any

@@ -7,7 +7,7 @@ import BaseFulfillmentService from "medusa-interfaces"
 import { ShippingOption } from "../../shipping/entities/shippingOption.entity";
 import { Cart } from "../../cart/entities/cart.entity";
 import { MedusaError } from "medusa-core-utils"
-import { Order } from "../../order/order.entity";
+import { Order } from "../../order/entities/order.entity";
 
 type FulfillmentProviderKey = `fp_${string}`
 

@@ -5,7 +5,7 @@ import  TaxProviderService from "@medusajs/medusa/dist/services/tax-provider";
 import { FlagRouter } from "@medusajs/medusa/dist/utils/flag-router";
 import { ITaxCalculationStrategy, TaxCalculationContext } from "@medusajs/medusa/dist/interfaces";
 import { Cart } from "../entities/cart.entity";
-import { Order } from "../../order/order.entity";
+import { Order } from "../../order/entities/order.entity";
 import { ShippingMethod } from '../../shipping/entities/shippingMethod.entity'; 
 import { LineAllocationsMap,LineDiscountAmount,SubtotalOptions } from "../types/totals";
 import { DiscountRuleType } from "@medusajs/medusa/dist/models/discount-rule";
@@ -91,6 +91,83 @@ export class TotalsService extends MedusaTotalsService {
         this.container = container;
         this.manager = container.manager;
     }
+
+    /**
+   * The amount that can be refunded for a given line item.
+   * @param order - order to use as context for the calculation
+   * @param lineItem - the line item to calculate the refund amount for.
+   * @return the line item refund amount.
+   */
+  async getLineItemRefund(order: Order, lineItem: LineItem): Promise<number> {
+    const allocationMap = await this.getAllocationMap(order)
+
+    const includesTax =
+      this.featureFlagRouter_.isFeatureEnabled(
+        TaxInclusivePricingFeatureFlag.key
+      ) && lineItem.includes_tax
+
+    const discountAmount =
+      (allocationMap[lineItem.id]?.discount?.unit_amount || 0) *
+      lineItem.quantity
+
+    let lineSubtotal = lineItem.unit_price * lineItem.quantity - discountAmount
+
+    /*
+     * Used for backcompat with old tax system
+     */
+    if (order.tax_rate !== null) {
+      const taxAmountIncludedInPrice = !includesTax
+        ? 0
+        : Math.round(
+            calculatePriceTaxAmount({
+              price: lineItem.unit_price,
+              taxRate: order.tax_rate / 100,
+              includesTax,
+            })
+          )
+
+      lineSubtotal =
+        (lineItem.unit_price - taxAmountIncludedInPrice) * lineItem.quantity -
+        discountAmount
+
+      const taxRate = order.tax_rate / 100
+      return this.rounded(lineSubtotal * (1 + taxRate))
+    }
+
+    /*
+     * New tax system uses the tax lines registerd on the line items
+     */
+    if (typeof lineItem.tax_lines === "undefined") {
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        "Tax calculation did not receive tax_lines"
+      )
+    }
+
+    const taxRate = lineItem.tax_lines.reduce((acc, next) => {
+      return acc + next.rate / 100
+    }, 0)
+    const taxAmountIncludedInPrice = !includesTax
+      ? 0
+      : Math.round(
+          calculatePriceTaxAmount({
+            price: lineItem.unit_price,
+            taxRate,
+            includesTax,
+          })
+        )
+
+    lineSubtotal =
+      (lineItem.unit_price - taxAmountIncludedInPrice) * lineItem.quantity -
+      discountAmount
+
+    const taxTotal = lineItem.tax_lines.reduce((acc, next) => {
+      const taxRate = next.rate / 100
+      return acc + this.rounded(lineSubtotal * taxRate)
+    }, 0)
+
+    return lineSubtotal + taxTotal
+  }
 
     /**
    * Gets the totals breakdown for a shipping method. Fetches tax lines if not
@@ -320,6 +397,34 @@ export class TotalsService extends MedusaTotalsService {
     return (
       subtotal + taxTotal + shippingTotal - discountTotal - giftCardTotal.total
     )
+  }
+
+  /**
+   * Gets the total refund amount for an order.
+   * @param order - the order to get total refund amount for.
+   * @return the total refunded amount for an order.
+   */
+   getRefundedTotal(order: Order): number {
+    if (!order.refunds) {
+      return 0
+    }
+
+    const total = order.refunds.reduce((acc, next) => acc + next.amount, 0)
+    return this.rounded(total)
+  }
+
+  /**
+   * Gets the total payments made on an order
+   * @param order - the order to calculate paid amount for
+   * @return the total paid amount
+   */
+   getPaidTotal(order: Order): number {
+    const total = order.payments?.reduce((acc, next) => {
+      acc += next.amount
+      return acc
+    }, 0)
+
+    return total
   }
 
   

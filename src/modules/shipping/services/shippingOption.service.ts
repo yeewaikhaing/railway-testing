@@ -9,7 +9,7 @@ import { FlagRouter } from '@medusajs/medusa/dist/utils/flag-router';
 import { ShippingOptionRequirementRepository } from '@medusajs/medusa/dist/repositories/shipping-option-requirement';
 import { ShippingOption } from '../entities/shippingOption.entity';
 import { Cart } from '../../cart/entities/cart.entity';
-import { Order } from '../../order/order.entity';
+import { Order } from '../../order/entities/order.entity';
 import { ShippingMethod } from '../entities/shippingMethod.entity';
 import {CreateShippingMethodDto, CreateShippingOptionInput} from "../types/shipping-options";
 import { FulfillmentProviderService } from '../../fulfillment/services/fulfillmentProvider.service';

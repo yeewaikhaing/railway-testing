@@ -3,7 +3,7 @@ import { Column, Entity, JoinColumn, OneToMany } from 'typeorm';
 import { Entity as MedusaEntity } from 'medusa-extender';
 import { User } from '../../user/entities/user.entity';
 import { Product } from '../../product/entities/product.entity';
-import { Order } from '../../order/order.entity';
+import { Order } from '../../order/entities/order.entity';
 import { Invite } from './../../invite/invite.entity';
 import { Role } from '../../role/role.entity';
 export enum StoreTypes {
