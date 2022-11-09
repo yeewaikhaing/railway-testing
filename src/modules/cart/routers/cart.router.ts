@@ -12,6 +12,8 @@ import createLineItem from '../handlers/create-line-item';
 import deleteLineItem from '../handlers/delete-line-item';
 import updateLineItem from '../handlers/update-line-item';
 import addShippingMethod from '../handlers/add-shipping-method';
+import removeDiscount from '../handlers/remove-discount';
+import createPaymentSession from '../handlers/create-payment-session';
 
 export const defaultStoreCartFields: (keyof Cart)[] = []
 
@@ -39,7 +41,7 @@ export const defaultStoreCartRelations = [
          * Create a cart
          */
         {
-            requiredAuth: true,
+            requiredAuth: false,
             path: '/store/v1/carts',
             method: 'post',
             handlers: [
@@ -51,7 +53,7 @@ export const defaultStoreCartRelations = [
          * Get a cart
          */
          {
-          requiredAuth: true,
+          requiredAuth: false,
           path: '/store/v1/carts/:id',
           method: 'get',
           handlers: [
@@ -67,7 +69,7 @@ export const defaultStoreCartRelations = [
        * Add a Line Item
        */
       {
-        requiredAuth: true,
+        requiredAuth: false,
         path: '/store/v1/carts/:id/line-items',
         method: 'post',
         handlers: [
@@ -78,7 +80,7 @@ export const defaultStoreCartRelations = [
        * Delete a Line Item
        */
        {
-        requiredAuth: true,
+        requiredAuth: false,
         path: '/store/v1/carts/:id/line-items/:line_id',
         method: 'delete',
         handlers: [
@@ -89,7 +91,7 @@ export const defaultStoreCartRelations = [
        * Update a Line Item
        */
        {
-        requiredAuth: true,
+        requiredAuth: false,
         path: '/store/v1/carts/:id/line-items/:line_id',
         method: 'post',
         handlers: [
@@ -100,13 +102,35 @@ export const defaultStoreCartRelations = [
        * Adds a Shipping Method to the Cart
        */
        {
-        requiredAuth: true,
+        requiredAuth: false,
         path: '/store/v1/carts/:id/shipping-methods',
         method: 'post',
         handlers: [
             middlewares.wrap(addShippingMethod)
         ],
-      }
+      },
+      /**
+       * Removes a Discount from a Cart.
+       */
+       {
+        requiredAuth: false,
+        path: '/store/v1/carts/:id/discounts/:code',
+        method: 'delete',
+        handlers: [
+            middlewares.wrap(removeDiscount)
+        ],
+      },
+      /**
+       * Creates Payment Sessions for each of the available Payment Providers in the Cart's Region.
+       */
+       {
+        requiredAuth: false,
+        path: '/store/v1/carts/:id/payment-sessions',
+        method: 'post',
+        handlers: [
+            middlewares.wrap(createPaymentSession)
+        ],
+      },
     ] 
 })
 export class CartRouter {

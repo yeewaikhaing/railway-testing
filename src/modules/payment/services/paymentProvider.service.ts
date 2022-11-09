@@ -44,12 +44,39 @@ export class PaymentProviderService extends MedusaPaymentProviderService {
     }
 
     
+    
+    async deleteSession(
+      paymentSession: PaymentSession
+    ): Promise<PaymentSession | undefined> {
+      return await this.atomicPhase_(async (transactionManager) => {
+        const session = await this.retrieveSession(paymentSession.id).catch(
+          () => void 0
+        )
+        //const session = await this.retrieveSession(paymentSession.id)
+        if (!session) {
+          return
+        }
+  
+        const provider = this.retrieveProvider(paymentSession.provider_id)
+        await provider
+          .withTransaction(transactionManager)
+          .deletePayment(paymentSession)
+  
+        const sessionRepo = transactionManager.getCustomRepository(
+          this.container.paymentSessionRepository
+        )
+      
+      await sessionRepo.remove(session);
+      return session;
+      })
+    }
+  
       async retrieveSession(
         id: string,
         relations: string[] = []
       ): Promise<PaymentSession | never> {
-        const sessionRepo = this.manager_.getCustomRepository(
-          this.paymentSessionRepository_
+        const sessionRepo = this.manager.getCustomRepository(
+          this.container.paymentSessionRepository
         )
     
         const query = {

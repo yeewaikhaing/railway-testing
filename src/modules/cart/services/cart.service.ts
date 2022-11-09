@@ -86,6 +86,52 @@ export class CartService extends MedusaCartService {
         this.manager = container.manager;
         this.cartRepository = container.cartRepository;
     }
+
+    /**
+   * Removes a discount based on a discount code.
+   * @param cartId - the id of the cart to remove from
+   * @param discountCode - the discount code to remove
+   * @return the resulting cart
+   */
+  async removeDiscount(cartId: string, discountCode: string): Promise<Cart> {
+    return await this.atomicPhase_(
+      async (transactionManager: EntityManager) => {
+        const cart = await this.retrieve(cartId, {
+          relations: [
+            "discounts",
+            "discounts.rule",
+            "payment_sessions",
+            "shipping_methods",
+          ],
+        })
+
+        if (
+          cart.discounts.some(
+            ({ rule }) => rule.type === DiscountRuleType.FREE_SHIPPING
+          )
+        ) {
+          await this.adjustFreeShipping_(cart, false)
+        }
+
+        cart.discounts = cart.discounts.filter(
+          (discount) => discount.code !== discountCode
+        )
+
+        const cartRepo = transactionManager.getCustomRepository(this.cartRepository)
+        const updatedCart = await cartRepo.save(cart)
+
+        if (updatedCart.payment_sessions?.length) {
+          await this.setPaymentSessions(cartId)
+        }
+
+        await this.eventBus_
+          .withTransaction(transactionManager)
+          .emit(CartService.Events.UPDATED, updatedCart)
+
+        return updatedCart
+      }
+    )
+  }
 /**
    * Checks if a given line item has a shipping method that can fulfill it.
    * Returns true if all products in the cart can be fulfilled with the current
@@ -601,7 +647,7 @@ export class CartService extends MedusaCartService {
     return await this.atomicPhase_(
       async (transactionManager: EntityManager) => {
         const psRepo = transactionManager.getCustomRepository(
-          this.paymentSessionRepository_
+          this.container.paymentSessionRepository
         )
 
         const cartId =
