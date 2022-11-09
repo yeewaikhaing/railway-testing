@@ -15,7 +15,8 @@ import addShippingMethod from '../handlers/add-shipping-method';
 import removeDiscount from '../handlers/remove-discount';
 import createPaymentSession from '../handlers/create-payment-session';
 import updatePaymentSession from '../handlers/update-payment-session';
-
+import setPaymentSession from '../handlers/set-payment-session';
+import completeCart from '../handlers/complete-cart';
 export const defaultStoreCartFields: (keyof Cart)[] = []
 
 export const defaultStoreCartRelations = [
@@ -38,6 +39,7 @@ export const defaultStoreCartRelations = [
     
     routes: 
     [
+      // Line items
        /**
          * Create a cart
          */
@@ -100,17 +102,6 @@ export const defaultStoreCartRelations = [
         ],
       },
       /**
-       * Adds a Shipping Method to the Cart
-       */
-       {
-        requiredAuth: false,
-        path: '/store/v1/carts/:id/shipping-methods',
-        method: 'post',
-        handlers: [
-            middlewares.wrap(addShippingMethod)
-        ],
-      },
-      /**
        * Removes a Discount from a Cart.
        */
        {
@@ -121,6 +112,32 @@ export const defaultStoreCartRelations = [
             middlewares.wrap(removeDiscount)
         ],
       },
+      /**
+       * Completes a cart.
+       */
+       {
+        requiredAuth: false,
+        path: '/store/v1/carts/:id/complete',
+        method: 'post',
+        handlers: [
+            middlewares.wrap(completeCart)
+        ],
+      },
+
+      // Shipping Options
+      /**
+       * Adds a Shipping Method to the Cart
+       */
+       {
+        requiredAuth: false,
+        path: '/store/v1/carts/:id/shipping-methods',
+        method: 'post',
+        handlers: [
+            middlewares.wrap(addShippingMethod)
+        ],
+      },
+      
+      // Payment sessions
       /**
        * Creates Payment Sessions for each of the available Payment Providers in the Cart's Region.
        */
@@ -141,6 +158,17 @@ export const defaultStoreCartRelations = [
         method: 'post',
         handlers: [
             middlewares.wrap(updatePaymentSession)
+        ],
+      },
+      /**
+       * Selects a Payment Session as the session intended to be used towards the completion of the Cart.
+       */
+       {
+        requiredAuth: false,
+        path: '/store/v1/carts/:id/payment-session',
+        method: 'post',
+        handlers: [
+            middlewares.wrap(setPaymentSession)
         ],
       },
     ] 
