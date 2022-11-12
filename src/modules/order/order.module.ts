@@ -1,4 +1,8 @@
 import { Module } from 'medusa-extender';
+import { OrderEditRouter } from './routers/orderEdit.router';
+import { OrderEdit } from './entities/orderEdit.entity';
+import { OrderEditRepository } from './repositories/orderEdit.repository';
+import { OrderEditService } from './services/orderEdit.service';
 import { StorefrontOrderRouter } from './routers/storefrontOrder.router';
 import { AdminOrderRouter } from './routers/adminOrder.router';
 import { Order } from './entities/order.entity';
@@ -16,6 +20,10 @@ import { OrderService } from './services/order.service';
         OrderMigration1661689658400, 
         StorefrontOrderRouter,
         AdminOrderRouter,
+        OrderEditRouter,
+        OrderEdit,
+        OrderEditRepository,
+        OrderEditService,
     ]
 })
 export class OrderModule {}

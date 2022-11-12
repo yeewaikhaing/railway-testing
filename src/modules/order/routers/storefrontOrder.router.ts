@@ -1,4 +1,4 @@
-import { MedusaAuthenticatedRequest, Router } from 'medusa-extender';
+import { Router } from 'medusa-extender';
 import middlewares from '@medusajs/medusa/dist/api/middlewares';
 import { Order } from '../entities/order.entity';
 import getOrderByCart from '../handlers/storefront/get-order-by-cart';
