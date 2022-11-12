@@ -17,38 +17,36 @@ import {UserService} from '../services/user.service';
     })
 export class LoggedInUserMiddleware implements MedusaMiddleware {
     
-    public async consume(req: MedusaAuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
-        const userService = req.scope.resolve('userService') as UserService;
-        
-        const loggedInUser = await userService.retrieve(req.user.userId, {
-            select: ['id', 'store_id']
-        });
-        req.scope.register({
-            loggedInUser: {
-                resolve: () => loggedInUser,
-            },
-        });
-       // console.log("loggedInUser in middle ", loggedInUser);
-        
-        next();
-    }
     // public async consume(req: MedusaAuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
-    //     let loggedInUser = null;
-    //     //console.log("loggedInUser........", req.user);
+    //     const userService = req.scope.resolve('userService') as UserService;
         
-    //     if (req.user && req.user.userId && /^\/admin/.test(req.originalUrl)) {
-    //         const userService = req.scope.resolve('userService') as UserService;
-    //         loggedInUser = await userService.retrieve(req.user.userId, {
-    //             select: ['id', 'store_id'],
-    //         });
-    //     }
+    //     const loggedInUser = await userService.retrieve(req.user.userId, {
+    //         select: ['id', 'store_id']
+    //     });
     //     req.scope.register({
     //         loggedInUser: {
     //             resolve: () => loggedInUser,
     //         },
     //     });
-    //    // console.log("loggedin user in middleware ", loggedInUser);
-        
     //     next();
     // }
+     public async consume(req: MedusaAuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+        let loggedInUser = null;
+        //console.log("loggedInUser........", req.user);
+        
+        if (req.user && req.user.userId && /^\/admin/.test(req.originalUrl)) {
+            const userService = req.scope.resolve('userService') as UserService;
+            loggedInUser = await userService.retrieve(req.user.userId, {
+                select: ['id', 'store_id'],
+            });
+        }
+        req.scope.register({
+            loggedInUser: {
+                resolve: () => loggedInUser,
+            },
+        });
+       // console.log("loggedin user in middleware ", loggedInUser);
+        
+        next();
+    }
 }

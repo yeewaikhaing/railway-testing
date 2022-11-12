@@ -87,7 +87,8 @@ export class OrderService extends MedusaOrderService {
       delete selector.q
     }
 
-    const query = buildQuery(selector, config)
+    //const query = buildQuery(selector, config)
+    const query = this.buildQuery_(selector, config)
 
     if (q) {
       const where = query.where
@@ -386,13 +387,29 @@ export class OrderService extends MedusaOrderService {
     }
   }
 
-    buildQuery_(selector: object, config: {relations: string[], select: string[]}): object {
-        // if (this.container.loggedInUser && this.container.loggedInUser.store_id) {
-        //     selector['store_id'] = this.container.loggedInUser.store_id;
-        // }
-        if (Object.keys(this.container).includes('loggedInUser') && this.container.loggedInUser.store_id) {
+    // buildQuery_(
+    //   selector: object, 
+    //   config: {relations: string[], 
+    //   select: string[]}
+    //   ): object {
+      buildQuery_(
+        selector: QuerySelector<Order>, 
+        config: FindConfig<Order> = {
+          skip: 0,
+          take: 50,
+          order: { created_at: "DESC" },
+        }) {
+      
+      console.log("buildQuery-----");
+      
+      if (this.container.loggedInUser && this.container.loggedInUser.store_id) {
+            console.log("---loginUser exist");
+            
             selector['store_id'] = this.container.loggedInUser.store_id;
         }
+        // if (Object.keys(this.container).includes('loggedInUser') && this.container.loggedInUser.store_id) {
+        //     selector['store_id'] = this.container.loggedInUser.store_id;
+        // }
         config.select.push('store_id')
 
         config.relations = config.relations ?? []

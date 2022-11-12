@@ -498,6 +498,13 @@ export class ProductService extends MedusaProductService {
   const manager = this.manager_
   const productRepo = manager.getCustomRepository(this.container.productRepository);
 
+  // let store_id = Object.keys(this.container).includes("loggedInUser")
+  //       ? this.container.loggedInUser.store_id
+  //       : null;
+   
+  //   if(store_id) {
+  //     selector.store_id = store_id;
+  //   }
   const { q, query, relations } = this.prepareMyListQuery_(selector, config)
 
   if (q) {

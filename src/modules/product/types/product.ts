@@ -44,6 +44,10 @@ export type ProductSelector =
 
   @IsString()
   @IsOptional()
+  store_id?: string
+
+  @IsString()
+  @IsOptional()
   q?: string
 
   @IsOptional()

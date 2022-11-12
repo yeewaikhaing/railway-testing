@@ -294,11 +294,21 @@ export  class UserService extends MedusaUserService {
     const userRepo = manager.getCustomRepository(this.userRepository)
 
     const loggedInUser = await this.retrieve(user_id);
-    // retrieve th users associated with the login user's store
-    if(loggedInUser.store_id){
-      selector.store_id = loggedInUser.store_id;
+    //retrieve th users associated with the login user's store
+    // if(loggedInUser.store_id){
+    //   selector.store_id = loggedInUser.store_id;
+    // }
+    // console.log("logggedInUser store id =>", loggedInUser.store_id);
+    
+    let store_id = Object.keys(this.container).includes("loggedInUser")
+        ? this.container.loggedInUser.store_id
+        : null;
+    //console.log("store_id => ", store_id);
+    
+    if(store_id) {
+      selector.store_id = store_id;
     }
-
+    
     const selector_ = { ...selector }
     let q: string | undefined
     if ("q" in selector_) {
@@ -327,7 +337,7 @@ export  class UserService extends MedusaUserService {
     selector: Selector<User>,
     config: FindConfig<User> = {}
   ): Promise<User> {
-    const manager = this.manager_
+    const manager = this.manager
 
     const userRepo = manager.getCustomRepository(this.userRepository);
 

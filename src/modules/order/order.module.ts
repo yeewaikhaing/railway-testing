@@ -9,7 +9,7 @@ import { Order } from './entities/order.entity';
 import { OrderMigration1661689658400 } from './migrations/1661689658400-order.migration';
 import { OrderRepository } from './repositories/order.repository';
 import { OrderService } from './services/order.service';
-//import { OrderSubscriber } from './order.subscriber';
+import { OrderSubscriber } from './order.subscriber';
 
 @Module({
     imports: 
@@ -24,6 +24,7 @@ import { OrderService } from './services/order.service';
         OrderEdit,
         OrderEditRepository,
         OrderEditService,
+        OrderSubscriber
     ]
 })
 export class OrderModule {}
