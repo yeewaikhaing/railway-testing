@@ -10,6 +10,11 @@ import { Order } from '../entities/order.entity';
 import { TotalsService } from '../../cart/services/totals.service';
 import { LineItem } from '../../lineItem/entities/lineItem.entity';
 import { MedusaError } from "medusa-core-utils"
+import { Fulfillment } from '../../fulfillment/entities/fulfillment.entity';
+import { ClaimOrder, Return, Swap } from '@medusajs/medusa';
+import { PaymentProviderService } from '../../payment/services/paymentProvider.service';
+import { OrderStatus,FulfillmentStatus,PaymentStatus } from "@medusajs/medusa/dist/models/order";
+
 
 type InjectedDependencies = {
     manager: EntityManager;
@@ -48,6 +53,136 @@ export class OrderService extends MedusaOrderService {
         this.manager = container.manager;
         this.container = container;
     }
+
+    /**
+   * Archives an order. It only alloved, if the order has been fulfilled
+   * and payment has been captured.
+   * @param orderId - the order to archive
+   * @return the result of the update operation
+   */
+  async archive(orderId: string): Promise<Order> {
+    return await this.atomicPhase_(async (manager) => {
+      const order = await this.retrieve(orderId)
+
+      if (order.status !== ("completed" || "refunded")) {
+        throw new MedusaError(
+          MedusaError.Types.NOT_ALLOWED,
+          "Can't archive an unprocessed order"
+        )
+      }
+
+      order.status = OrderStatus.ARCHIVED
+      const orderRepo = manager.getCustomRepository(this.container.orderRepository)
+      return await orderRepo.save(order)
+    })
+  }
+
+  /**
+   * @param orderId - id of the order to complete
+   * @return the result of the find operation
+   */
+   async completeOrder(orderId: string): Promise<Order> {
+    return await this.atomicPhase_(async (manager) => {
+      const order = await this.retrieve(orderId)
+
+      if (order.status === "canceled") {
+        throw new MedusaError(
+          MedusaError.Types.NOT_ALLOWED,
+          "A canceled order cannot be completed"
+        )
+      }
+
+      await this.container.eventBusService.emit(OrderService.Events.COMPLETED, {
+        id: orderId,
+        no_notification: order.no_notification,
+      })
+
+      order.status = OrderStatus.COMPLETED
+
+      const orderRepo = manager.getCustomRepository(this.container.orderRepository)
+      return orderRepo.save(order)
+    })
+  }
+
+  /**
+   * Cancels an order.
+   * Throws if fulfillment process has been initiated.
+   * Throws if payment process has been initiated.
+   * @param orderId - id of order to cancel.
+   * @return result of the update operation.
+   */
+   async cancel(orderId: string): Promise<Order> {
+    return await this.atomicPhase_(async (manager) => {
+      const order = await this.retrieve(orderId, {
+        relations: [
+          "fulfillments",
+          "payments",
+          "returns",
+          "claims",
+          "swaps",
+          "items",
+        ],
+      })
+
+      if (order.refunds?.length > 0) {
+        throw new MedusaError(
+          MedusaError.Types.NOT_ALLOWED,
+          "Order with refund(s) cannot be canceled"
+        )
+      }
+
+      const throwErrorIf = (
+        arr: (Fulfillment | Return | Swap | ClaimOrder)[],
+        pred: (obj: Fulfillment | Return | Swap | ClaimOrder) => boolean,
+        type: string
+      ): void | never => {
+        if (arr?.filter(pred).length) {
+          throw new MedusaError(
+            MedusaError.Types.NOT_ALLOWED,
+            `All ${type} must be canceled before canceling an order`
+          )
+        }
+      }
+
+      const notCanceled = (o): boolean => !o.canceled_at
+
+      throwErrorIf(order.fulfillments, notCanceled, "fulfillments")
+      throwErrorIf(
+        order.returns,
+        (r) => (r as Return).status !== "canceled",
+        "returns"
+      )
+      throwErrorIf(order.swaps, notCanceled, "swaps")
+      throwErrorIf(order.claims, notCanceled, "claims")
+
+      const inventoryServiceTx = this.container.inventoryService.withTransaction(manager)
+      for (const item of order.items) {
+        await inventoryServiceTx.adjustInventory(item.variant_id, item.quantity)
+      }
+
+      const paymentProviderServiceTx : PaymentProviderService =
+        this.container.paymentProviderService.withTransaction(manager)
+      for (const p of order.payments) {
+        await paymentProviderServiceTx.cancelPayment(p)
+      }
+
+      order.status = OrderStatus.CANCELED
+      order.fulfillment_status = FulfillmentStatus.CANCELED
+      order.payment_status = PaymentStatus.CANCELED
+      order.canceled_at = new Date()
+
+      const orderRepo = manager.getCustomRepository(this.container.orderRepository)
+      const result = await orderRepo.save(order)
+
+      await this.container.eventBusService
+        .withTransaction(manager)
+        .emit(OrderService.Events.CANCELED, {
+          id: order.id,
+          no_notification: order.no_notification,
+        })
+      return result
+    })
+  }
 
     /**
    * @param selector the query object for find

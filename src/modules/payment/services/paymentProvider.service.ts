@@ -43,6 +43,55 @@ export class PaymentProviderService extends MedusaPaymentProviderService {
         this.paymentProviderRepository = container.paymentProviderRepository;
     }
 
+    async retrievePayment(
+      id: string,
+      relations: string[] = []
+    ): Promise<Payment | never> {
+      const paymentRepo = this.manager.getCustomRepository(
+        this.container.paymentRepository
+      )
+      const query = {
+        where: { id },
+        relations: [] as string[],
+      }
+  
+      if (relations.length) {
+        query.relations = relations
+      }
+  
+      const payment = await paymentRepo.findOne(query)
+  
+      if (!payment) {
+        throw new MedusaError(
+          MedusaError.Types.NOT_FOUND,
+          `Payment with ${id} was not found`
+        )
+      }
+  
+      return payment
+    }
+
+    
+    async cancelPayment(
+      paymentObj: Partial<Payment> & { id: string }
+    ): Promise<Payment> {
+      return await this.atomicPhase_(async (transactionManager) => {
+        const payment = await this.retrievePayment(paymentObj.id)
+        const provider = this.retrieveProvider(payment.provider_id)
+        payment.data = await provider
+          .withTransaction(transactionManager)
+          .cancelPayment(payment)
+  
+        const now = new Date()
+        payment.canceled_at = now.toISOString()
+  
+        const paymentRepo = transactionManager.getCustomRepository(
+          this.container.paymentRepository
+        )
+        return await paymentRepo.save(payment)
+      })
+    }
+  
     
     
     async deleteSession(
