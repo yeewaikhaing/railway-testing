@@ -2,6 +2,8 @@ import { MedusaAuthenticatedRequest, Router } from 'medusa-extender';
 import middlewares from '@medusajs/medusa/dist/api/middlewares';
 import { Order } from '../entities/order.entity';
 import getOrderByCart from '../handlers/storefront/get-order-by-cart';
+import getOrder from '../handlers/storefront/get-order';
+import lookUpOrder from '../handlers/storefront/look-up-order';
 
 @Router({
     routes: 
@@ -15,6 +17,28 @@ import getOrderByCart from '../handlers/storefront/get-order-by-cart';
             method: 'get',
             handlers: [
                 middlewares.wrap(getOrderByCart)
+            ],
+        },
+        /**
+         * Retrieves an Order by the id.
+         */
+         {
+            requiredAuth: false,
+            path: '/store/v1/orders/:id',
+            method: 'get',
+            handlers: [
+                middlewares.wrap(getOrder)
+            ],
+        },
+        /**
+         * Look up an order using filters.
+         */
+         {
+            requiredAuth: false,
+            path: '/store/v1/orders',
+            method: 'get',
+            handlers: [
+                middlewares.wrap(lookUpOrder)
             ],
         },
     ] 

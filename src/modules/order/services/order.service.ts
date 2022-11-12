@@ -1,11 +1,11 @@
-import { EntityManager } from 'typeorm';
+import { EntityManager, Brackets } from 'typeorm';
 import { OrderService as MedusaOrderService } from "@medusajs/medusa/dist/services";
 import { OrderRepository } from '../repositories/order.repository';
 import { Service } from 'medusa-extender';
 import { User } from "../../user/entities/user.entity";
 import {buildQuery} from "@medusajs/medusa/dist/utils";
 import { FlagRouter } from '@medusajs/medusa/dist/utils/flag-router';
-import { FindConfig } from '@medusajs/medusa/dist/types/common';
+import { FindConfig, QuerySelector, Selector } from '@medusajs/medusa/dist/types/common';
 import { Order } from '../entities/order.entity';
 import { TotalsService } from '../../cart/services/totals.service';
 import { LineItem } from '../../lineItem/entities/lineItem.entity';
@@ -48,6 +48,129 @@ export class OrderService extends MedusaOrderService {
         this.manager = container.manager;
         this.container = container;
     }
+
+    /**
+   * @param selector the query object for find
+   * @param config the config to be used for find
+   * @return the result of the find operation
+   */
+  async list(
+    selector: Selector<Order>,
+    config: FindConfig<Order> = {
+      skip: 0,
+      take: 50,
+      order: { created_at: "DESC" },
+    }
+  ): Promise<Order[]> {
+    const [orders] = await this.listAndCount(selector, config)
+    return orders
+  }
+
+  /**
+   * @param {Object} selector - the query object for find
+   * @param {Object} config - the config to be used for find
+   * @return {Promise} the result of the find operation
+   */
+   async listAndCount(
+    selector: QuerySelector<Order>,
+    config: FindConfig<Order> = {
+      skip: 0,
+      take: 50,
+      order: { created_at: "DESC" },
+    }
+  ): Promise<[Order[], number]> {
+    const orderRepo = this.manager.getCustomRepository(this.container.orderRepository)
+
+    let q
+    if (selector.q) {
+      q = selector.q
+      delete selector.q
+    }
+
+    const query = buildQuery(selector, config)
+
+    if (q) {
+      const where = query.where
+
+      delete where.display_id
+      delete where.email
+
+      query.join = {
+        alias: "order",
+        innerJoin: {
+          shipping_address: "order.shipping_address",
+        },
+      }
+
+      query.where = (qb): void => {
+        qb.where(where)
+
+        qb.andWhere(
+          new Brackets((qb) => {
+            qb.where(`shipping_address.first_name ILIKE :qfn`, {
+              qfn: `%${q}%`,
+            })
+              .orWhere(`order.email ILIKE :q`, { q: `%${q}%` })
+              .orWhere(`display_id::varchar(255) ILIKE :dId`, { dId: `${q}` })
+          })
+        )
+      }
+    }
+
+    const { select, relations, totalsToSelect } =
+      this.myTransformQueryForTotals(config)
+
+    query.select = select
+    const rels = relations
+
+    delete query.relations
+
+    const raw = await orderRepo.findWithRelations(rels, query)
+    const count = await orderRepo.count(query)
+    const orders = await Promise.all(
+      raw.map(async (r) => await this.decorateTotals(r, totalsToSelect))
+    )
+
+    return [orders, count]
+  }
+
+    /**
+   * Gets an order by id.
+   * @param orderId - id of order to retrieve
+   * @param config - config of order to retrieve
+   * @return the order document
+   */
+  async retrieve(
+    orderId: string,
+    config: FindConfig<Order> = {}
+  ): Promise<Order> {
+    const orderRepo = this.manager.getCustomRepository(this.container.orderRepository)
+
+    const { select, relations, totalsToSelect } =
+      this.myTransformQueryForTotals(config)
+
+    const query = {
+      where: { id: orderId },
+    } as FindConfig<Order>
+
+    if (relations && relations.length > 0) {
+      query.relations = relations
+    }
+
+    query.select = select?.length ? select : undefined
+
+    const rels = query.relations
+    delete query.relations
+    const raw = await orderRepo.findOneWithRelations(rels, query)
+    if (!raw) {
+      throw new MedusaError(
+        MedusaError.Types.NOT_FOUND,
+        `Order with ${orderId} was not found`
+      )
+    }
+
+    return await this.decorateTotals(raw, totalsToSelect)
+  }
 
     /**
    * Gets an order by cart id.

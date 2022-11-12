@@ -17,6 +17,9 @@ import createPaymentSession from '../handlers/create-payment-session';
 import updatePaymentSession from '../handlers/update-payment-session';
 import setPaymentSession from '../handlers/set-payment-session';
 import completeCart from '../handlers/complete-cart';
+import { StorePostCartsCartReq } from '../handlers/update-cart';
+import updateCart from '../handlers/update-cart';
+
 export const defaultStoreCartFields: (keyof Cart)[] = []
 
 export const defaultStoreCartRelations = [
@@ -121,6 +124,18 @@ export const defaultStoreCartRelations = [
         method: 'post',
         handlers: [
             middlewares.wrap(completeCart)
+        ],
+      },
+      /**
+       * Update a cart.
+       */
+       {
+        requiredAuth: false,
+        path: '/store/v1/carts/:id',
+        method: 'post',
+        handlers: [
+          transformBody(StorePostCartsCartReq),
+            middlewares.wrap(updateCart)
         ],
       },
 

@@ -39,6 +39,8 @@ import { PaymentProviderService } from '../../payment/services/paymentProvider.s
 import { ShippingMethod } from '../../shipping/entities/shippingMethod.entity';
 import { CustomShippingOptionService } from '../../shipping/services/customShippingOption.service';
 import { CustomShippingOption } from '../../shipping/entities/customShippingOption.entity';
+import { Address } from '../../customer/v1/entities/address.entity';
+import { AddressPayload } from '../../customer/v1/types/address';
 
 type TotalsConfig = {
     force_taxes?: boolean
@@ -986,7 +988,7 @@ export class CartService extends MedusaCartService {
           }
   
           const addrRepo = transactionManager.getCustomRepository(
-            this.addressRepository_
+            this.container.addressRepository
           )
   
           const billingAddress = data.billing_address_id ?? data.billing_address
@@ -1088,6 +1090,225 @@ export class CartService extends MedusaCartService {
       )
     }
   
+    protected async applyGiftCard_(cart: Cart, code: string): Promise<void> {
+      const giftCard = await this.giftCardService_
+        .withTransaction(this.transactionManager_)
+        .retrieveByCode(code)
+  
+      if (giftCard.is_disabled) {
+        throw new MedusaError(
+          MedusaError.Types.NOT_ALLOWED,
+          "The gift card is disabled"
+        )
+      }
+  
+      if (giftCard.region_id !== cart.region_id) {
+        throw new MedusaError(
+          MedusaError.Types.INVALID_DATA,
+          "The gift card cannot be used in the current region"
+        )
+      }
+  
+      // if discount is already there, we simply resolve
+      if (cart.gift_cards.find(({ id }) => id === giftCard.id)) {
+        return
+      }
+  
+      cart.gift_cards = [...cart.gift_cards, giftCard]
+    }
+  
+    /**
+   * Set's the region of a cart.
+   * @param cart - the cart to set region on
+   * @param regionId - the id of the region to set the region to
+   * @param countryCode - the country code to set the country to
+   * @return the result of the update operation
+   */
+  protected async setRegion_(
+    cart: Cart,
+    regionId: string,
+    countryCode: string | null
+  ): Promise<void> {
+    const transactionManager = this.transactionManager_ ?? this.manager
+
+    if (cart.completed_at || cart.payment_authorized_at) {
+      throw new MedusaError(
+        MedusaError.Types.NOT_ALLOWED,
+        "Cannot change the region of a completed cart"
+      )
+    }
+
+    const region = await this.container.regionService
+      .withTransaction(transactionManager)
+      .retrieve(regionId, {
+        relations: ["countries"],
+      })
+    cart.region = region
+    cart.region_id = region.id
+
+    const addrRepo = transactionManager.getCustomRepository(
+      this.container.addressRepository
+    )
+    /*
+     * When changing the region you are changing the set of countries that your
+     * cart can be shipped to so we need to make sure that the current shipping
+     * address adheres to the new country set.
+     *
+     * First check if there is an existing shipping address on the cart if so
+     * fetch the entire thing so we can modify the shipping country
+     */
+    let shippingAddress: Partial<Address> = {}
+    if (cart.shipping_address_id) {
+      shippingAddress = (await addrRepo.findOne({
+        where: { id: cart.shipping_address_id },
+      })) as Address
+    }
+
+    /*
+     * If the client has specified which country code we are updating to check
+     * that that country is in fact in the country and perform the update.
+     */
+    if (countryCode !== null) {
+      if (
+        !region.countries.find(
+          ({ iso_2 }) => iso_2 === countryCode.toLowerCase()
+        )
+      ) {
+        throw new MedusaError(
+          MedusaError.Types.NOT_ALLOWED,
+          `Country not available in region`
+        )
+      }
+
+      const updated = addrRepo.create({
+        ...shippingAddress,
+        country_code: countryCode.toLowerCase(),
+      })
+
+      await addrRepo.save(updated)
+      await this.updateShippingAddress_(cart, updated, addrRepo)
+    } else {
+      /*
+       * In the case where the country code is not specified we need to check
+       *
+       *   1. if the region we are switching to has only one country preselect
+       *      that
+       *   2. if the region has multiple countries we need to unset the country
+       *      and wait for client to decide which country to use
+       */
+
+      let updated = { ...shippingAddress }
+
+      // If the country code of a shipping address is set we need to clear it
+      if (!isEmpty(shippingAddress) && shippingAddress.country_code) {
+        updated = {
+          ...updated,
+          country_code: null,
+        }
+      }
+
+      // If there is only one country in the region preset it
+      if (region.countries.length === 1) {
+        updated = {
+          ...updated,
+          country_code: region.countries[0].iso_2,
+        }
+      }
+
+      await this.updateShippingAddress_(cart, updated, addrRepo)
+    }
+
+    // Shipping methods are determined by region so the user needs to find a
+    // new shipping method
+    if (cart.shipping_methods && cart.shipping_methods.length) {
+      await this.container.shippingOptionService
+        .withTransaction(transactionManager)
+        .deleteShippingMethods(cart.shipping_methods)
+    }
+
+    if (cart.discounts && cart.discounts.length) {
+      cart.discounts = cart.discounts.filter((discount) => {
+        return discount.regions.find(({ id }) => id === regionId)
+      })
+    }
+
+    if (cart?.items?.length) {
+      // line item adjustments should be refreshed on region change after having filtered out inapplicable discounts
+      await this.refreshAdjustments_(cart)
+    }
+
+    cart.gift_cards = []
+
+    if (cart.payment_sessions && cart.payment_sessions.length) {
+      const paymentSessionRepo = transactionManager.getCustomRepository(
+        this.container.paymentSessionRepository
+      )
+      await paymentSessionRepo.delete({
+        id: In(
+          cart.payment_sessions.map((paymentSession) => paymentSession.id)
+        ),
+      })
+      cart.payment_sessions.length = 0
+      cart.payment_session = null
+    }
+  }
+
+  /**
+   * Updates the cart's shipping address.
+   * @param cart - the cart to update
+   * @param addressOrId - the value to set the shipping address to
+   * @param addrRepo - the repository to use for address updates
+   * @return the result of the update operation
+   */
+   protected async updateShippingAddress_(
+    cart: Cart,
+    addressOrId: AddressPayload | Partial<Address> | string,
+    addrRepo: AddressRepository
+  ): Promise<void> {
+    let address: Address
+
+    if (addressOrId === null) {
+      cart.shipping_address = null
+      return
+    }
+
+    if (typeof addressOrId === `string`) {
+      address = (await addrRepo.findOne({
+        where: { id: addressOrId },
+      })) as Address
+    } else {
+      address = addressOrId as Address
+    }
+
+    address.country_code = address.country_code?.toLowerCase() ?? null
+
+    if (
+      address.country_code &&
+      !cart.region.countries.find(({ iso_2 }) => address.country_code === iso_2)
+    ) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        "Shipping country must be in the cart region"
+      )
+    }
+
+    if (address.id) {
+      cart.shipping_address = await addrRepo.save(address)
+    } else {
+      if (cart.shipping_address_id) {
+        const addr = await addrRepo.findOne({
+          where: { id: cart.shipping_address_id },
+        })
+
+        await addrRepo.save({ ...addr, ...address })
+      } else {
+        cart.shipping_address = addrRepo.create({
+          ...address,
+        })
+      }
+    }
+  }
+
     /**
    * Ensures shipping total on cart is correct in regards to a potential free
    * shipping discount
