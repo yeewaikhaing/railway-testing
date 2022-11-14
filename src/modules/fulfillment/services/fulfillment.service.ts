@@ -10,11 +10,11 @@ import { TrackingLinkRepository } from "@medusajs/medusa/dist/repositories/track
 import { LineItemRepository } from "../../lineItem/repositories/lineItem.repository";
 import  FulfillmentProviderService  from "@medusajs/medusa/dist/services/fulfillment-provider";
 import  ShippingProfileService from "@medusajs/medusa/dist/services/shipping-profile";
-import { CreateFulfillmentOrder, FulfillmentItemPartition, FulFillmentItemType } from "../types/fulfillment";
+import { CreateFulfillmentOrder, CreateShipmentConfig, FulfillmentItemPartition, FulFillmentItemType } from "../types/fulfillment";
 import { Fulfillment } from "../entities/fulfillment.entity";
 import { LineItem } from "../../lineItem/entities/lineItem.entity";
 import { ShippingMethod } from "../../shipping/entities/shippingMethod.entity";
-
+import {  isDefined } from "@medusajs/medusa/dist/utils";
 
 type InjectedDependencies = {
     manager: EntityManager
@@ -42,6 +42,110 @@ export class FulfillmentService extends MedusaFulfillmentService {
         this.fulfillmentRepository = container.fulfillmentRepository;
     }
 
+     /**
+   * Cancels a fulfillment with the fulfillment provider. Will decrement the
+   * fulfillment_quantity on the line items associated with the fulfillment.
+   * Throws if the fulfillment has already been shipped.
+   * @param fulfillmentOrId - the fulfillment object or id.
+   * @return the result of the save operation
+   *
+   */
+  async cancelFulfillment(
+    fulfillmentOrId: Fulfillment | string
+  ): Promise<Fulfillment> {
+    return await this.atomicPhase_(async (manager) => {
+      const id =
+        typeof fulfillmentOrId === "string"
+          ? fulfillmentOrId
+          : fulfillmentOrId.id
+
+      const fulfillment = await this.retrieve(id, {
+        relations: ["items", "claim_order", "swap"],
+      })
+
+      if (fulfillment.shipped_at) {
+        throw new MedusaError(
+          MedusaError.Types.NOT_ALLOWED,
+          `The fulfillment has already been shipped. Shipped fulfillments cannot be canceled`
+        )
+      }
+
+      await this.container.fulfillmentProviderService.cancelFulfillment(fulfillment)
+
+      fulfillment.canceled_at = new Date()
+
+      const lineItemServiceTx = this.container.lineItemService.withTransaction(manager)
+
+      for (const fItem of fulfillment.items) {
+        const item = await lineItemServiceTx.retrieve(fItem.item_id)
+        const fulfilledQuantity = item.fulfilled_quantity - fItem.quantity
+        await lineItemServiceTx.update(item.id, {
+          fulfilled_quantity: fulfilledQuantity,
+        })
+      }
+
+      const fulfillmentRepo = manager.getCustomRepository(this.fulfillmentRepository)
+      const canceled = await fulfillmentRepo.save(fulfillment)
+      return canceled
+    })
+  }
+
+    /**
+   * Creates a shipment by marking a fulfillment as shipped. Adds
+   * tracking links and potentially more metadata.
+   * @param fulfillmentId - the fulfillment to ship
+   * @param trackingLinks - tracking links for the shipment
+   * @param config - potential configuration settings, such as no_notification and metadata
+   * @return  the shipped fulfillment
+   */
+  async createShipment(
+    fulfillmentId: string,
+    trackingLinks?: { tracking_number: string }[],
+    config: CreateShipmentConfig = {
+      metadata: {},
+      no_notification: undefined,
+    }
+  ): Promise<Fulfillment> {
+    const { metadata, no_notification } = config
+
+    return await this.atomicPhase_(async (manager) => {
+      const fulfillmentRepository = manager.getCustomRepository(
+        this.fulfillmentRepository
+      )
+      const trackingLinkRepo = manager.getCustomRepository(
+        this.container.trackingLinkRepository
+      )
+
+      const fulfillment = await this.retrieve(fulfillmentId, {
+        relations: ["items"],
+      })
+
+      if (fulfillment.canceled_at) {
+        throw new MedusaError(
+          MedusaError.Types.NOT_ALLOWED,
+          "Fulfillment has been canceled"
+        )
+      }
+
+      const now = new Date()
+      fulfillment.shipped_at = now
+
+      fulfillment.tracking_links = (trackingLinks || []).map((tl) =>
+        trackingLinkRepo.create(tl)
+      )
+
+      if (isDefined(no_notification)) {
+        fulfillment.no_notification = no_notification
+      }
+
+      fulfillment.metadata = {
+        ...fulfillment.metadata,
+        ...metadata,
+      }
+
+      return await fulfillmentRepository.save(fulfillment)
+    })
+  }
      /**
    * Creates an order fulfillment
    * If items needs to be fulfilled by different provider, we make

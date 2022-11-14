@@ -11,7 +11,7 @@ import { TotalsService } from '../../cart/services/totals.service';
 import { LineItem } from '../../lineItem/entities/lineItem.entity';
 import { MedusaError } from "medusa-core-utils"
 import { Fulfillment } from '../../fulfillment/entities/fulfillment.entity';
-import { ClaimOrder, EventBusService, InventoryService, Return, Swap } from '@medusajs/medusa';
+import { ClaimOrder, EventBusService, InventoryService, Return, Swap, TrackingLink } from '@medusajs/medusa';
 import { PaymentProviderService } from '../../payment/services/paymentProvider.service';
 import { OrderStatus,FulfillmentStatus,PaymentStatus } from "@medusajs/medusa/dist/models/order";
 import { UpdateOrderInput } from '../types/orders';
@@ -67,6 +67,135 @@ export class OrderService extends MedusaOrderService {
         this.container = container;
     }
 
+    /**
+   * Adds a shipment to the order to indicate that an order has left the
+   * warehouse. Will ask the fulfillment provider for any documents that may
+   * have been created in regards to the shipment.
+   * @param orderId - the id of the order that has been shipped
+   * @param fulfillmentId - the fulfillment that has now been shipped
+   * @param trackingLinks - array of tracking numebers
+   *   associated with the shipment
+   * @param config - the config of the order that has been shipped
+   * @return the resulting order following the update.
+   */
+  async createShipment(
+    orderId: string,
+    fulfillmentId: string,
+    trackingLinks?: TrackingLink[],
+    config: {
+      no_notification?: boolean
+      metadata: Record<string, unknown>
+    } = {
+      metadata: {},
+      no_notification: undefined,
+    }
+  ): Promise<Order> {
+    const { metadata, no_notification } = config
+
+    return await this.atomicPhase_(async (manager) => {
+      const order = await this.retrieve(orderId, { relations: ["items"] })
+      const shipment = await this.container.fulfillmentService
+        .withTransaction(manager)
+        .retrieve(fulfillmentId)
+
+      if (order.status === "canceled") {
+        throw new MedusaError(
+          MedusaError.Types.NOT_ALLOWED,
+          "A canceled order cannot be fulfilled as shipped"
+        )
+      }
+
+      if (!shipment || shipment.order_id !== orderId) {
+        throw new MedusaError(
+          MedusaError.Types.NOT_FOUND,
+          "Could not find fulfillment"
+        )
+      }
+
+      const evaluatedNoNotification =
+        no_notification !== undefined
+          ? no_notification
+          : shipment.no_notification
+
+      const shipmentRes = await this.container.fulfillmentService
+        .withTransaction(manager)
+        .createShipment(fulfillmentId, trackingLinks, {
+          metadata,
+          no_notification: evaluatedNoNotification,
+        })
+
+      const lineItemServiceTx = this.container.lineItemService.withTransaction(manager)
+
+      order.fulfillment_status = FulfillmentStatus.SHIPPED
+      for (const item of order.items) {
+        const shipped = shipmentRes.items.find((si) => si.item_id === item.id)
+        if (shipped) {
+          const shippedQty = (item.shipped_quantity || 0) + shipped.quantity
+          if (shippedQty !== item.quantity) {
+            order.fulfillment_status = FulfillmentStatus.PARTIALLY_SHIPPED
+          }
+
+          await lineItemServiceTx.update(item.id, {
+            shipped_quantity: shippedQty,
+          })
+        } else {
+          if (item.shipped_quantity !== item.quantity) {
+            order.fulfillment_status = FulfillmentStatus.PARTIALLY_SHIPPED
+          }
+        }
+      }
+
+      const orderRepo = manager.getCustomRepository(this.container.orderRepository)
+      const result = await orderRepo.save(order)
+
+      await this.container.eventBusService
+        .withTransaction(manager)
+        .emit(OrderService.Events.SHIPMENT_CREATED, {
+          id: orderId,
+          fulfillment_id: shipmentRes.id,
+          no_notification: evaluatedNoNotification,
+        })
+
+      return result
+    })
+  }
+
+  /**
+   * Cancels a fulfillment (if related to an order)
+   * @param fulfillmentId - the ID of the fulfillment to cancel
+   * @return updated order
+   */
+   async cancelFulfillment(fulfillmentId: string): Promise<Order> {
+    return await this.atomicPhase_(async (manager) => {
+      const canceled = await this.container.fulfillmentService
+        .withTransaction(manager)
+        .cancelFulfillment(fulfillmentId)
+
+      if (!canceled.order_id) {
+        throw new MedusaError(
+          MedusaError.Types.NOT_ALLOWED,
+          `Fufillment not related to an order`
+        )
+      }
+
+      const order = await this.retrieve(canceled.order_id)
+
+      order.fulfillment_status = FulfillmentStatus.CANCELED
+
+      const orderRepo = manager.getCustomRepository(this.container.orderRepository)
+      const updated = await orderRepo.save(order)
+
+      await this.container.eventBusService
+        .withTransaction(manager)
+        .emit(OrderService.Events.FULFILLMENT_CANCELED, {
+          id: order.id,
+          fulfillment_id: canceled.id,
+          no_notification: canceled.no_notification,
+        })
+
+      return updated
+    })
+  }
     /**
    * Captures payment for an order.
    * @param orderId - id of order to capture payment for.

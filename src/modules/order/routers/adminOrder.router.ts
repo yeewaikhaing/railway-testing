@@ -13,6 +13,8 @@ import cancelOrder from '../handlers/admin/cancel-order';
 import createFulfillment from '../handlers/admin/create-fulfillment';
 import completeOrder from '../handlers/admin/complete-order';
 import capturePayment from '../handlers/admin/capture-payment';
+import createShippment from '../handlers/admin/create-shippment';
+import cancelFulfillment from '../handlers/admin/cancel-fulfillment';
 
 export const defaultAdminOrdersRelations = [
     "customer",
@@ -222,6 +224,31 @@ export const defaultAdminOrdersFields = [
             middlewares.wrap(createFulfillment)
         ],
       },
+      /**
+       * Cancel Fulfillemnt or Registers a Fulfillment as canceled.
+       */
+       {
+        requiredAuth: true,
+        path: '/admin/v1/orders/:id/fulfillments/:fulfillment_id/cancel',
+        method: 'post',
+        handlers: [
+            middlewares.authenticate(),
+            middlewares.wrap(cancelFulfillment)
+        ],
+      },
+      /**
+       * Create a shippment or Registers  a Fulfillment as shipped.
+       */
+       {
+        requiredAuth: true,
+        path: '/admin/v1/orders/:id/shipment',
+        method: 'post',
+        handlers: [
+            middlewares.authenticate(),
+            middlewares.wrap(createShippment)
+        ],
+      },
+      
       /**
        * Completes an Order.
        */

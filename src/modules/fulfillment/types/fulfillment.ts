@@ -6,6 +6,12 @@ import { Payment } from "../../payment/entities/payment.entity"
 import { Region } from "../../region/entities/region.entity"
 import { ShippingMethod } from "../../shipping/entities/shippingMethod.entity"
 
+export type CreateShipmentConfig = {
+  metadata?: Record<string, unknown>
+  no_notification?: boolean
+}
+
+
 export type FulfillmentItemPartition = {
     shipping_method: ShippingMethod
     items: LineItem[]
