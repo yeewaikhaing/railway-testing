@@ -11,6 +11,8 @@ import {
 } from "class-validator"
 import { IsType } from "@medusajs/medusa/dist/utils/validators/is-type"
 import { DateComparisonOperator } from "@medusajs/medusa/dist/types/common"
+import { Payment } from "../../payment/entities/payment.entity";
+import { AddressPayload } from "../../customer/v1/types/address";
 
 enum OrderStatus {
   pending = "pending",
@@ -121,6 +123,34 @@ export function isOrder(object: any): object is Order {
     @ValidateNested()
     @Type(() => DateComparisonOperator)
     updated_at?: DateComparisonOperator
+  }
+
+  export type UpdateOrderInput = {
+    email?: string
+    //store_id? : string
+    billing_address?: AddressPayload
+    shipping_address?: AddressPayload
+    items?: object[]
+    region?: string
+    discounts?: object[]
+    customer_id?: string
+    payment_method?: {
+      provider_id?: string
+      data?: Record<string, unknown>
+    }
+    shipping_method?: {
+      provider_id?: string
+      profile_id?: string
+      price?: number
+      data?: Record<string, unknown>
+      items?: Record<string, unknown>[]
+    }[]
+    no_notification?: boolean
+    payment?: Payment
+    status?: OrderStatus
+    fulfillment_status?: FulfillmentStatus
+    payment_status?: PaymentStatus
+    metadata?: Record<string, unknown>
   }
   
   

@@ -8,6 +8,11 @@ import { Order } from '../entities/order.entity';
 import { FindParams } from "@medusajs/medusa/dist/types/common";
 import listOrders from '../handlers/admin/list-orders';
 import getOrder from '../handlers/admin/get-order';
+import updateOrder from '../handlers/admin/update-order';
+import cancelOrder from '../handlers/admin/cancel-order';
+import createFulfillment from '../handlers/admin/create-fulfillment';
+import completeOrder from '../handlers/admin/complete-order';
+import capturePayment from '../handlers/admin/capture-payment';
 
 export const defaultAdminOrdersRelations = [
     "customer",
@@ -180,6 +185,66 @@ export const defaultAdminOrdersFields = [
               middlewares.authenticate(),
               middlewares.wrap(getOrder)
           ],
+      },
+      /**
+       * Updates an Order.
+       */
+       {
+        requiredAuth: true,
+        path: '/admin/v1/orders/:id',
+        method: 'post',
+        handlers: [
+            middlewares.authenticate(),
+            middlewares.wrap(updateOrder)
+        ],
+      },
+      /**
+       * Cancel an Order.
+       */
+       {
+        requiredAuth: true,
+        path: '/admin/v1/orders/:id/cancel',
+        method: 'post',
+        handlers: [
+            middlewares.authenticate(),
+            middlewares.wrap(cancelOrder)
+        ],
+      },
+      /**
+       * Creates a Fulfillment of an Order - will notify Fulfillment Providers to prepare a shipment.
+       */
+       {
+        requiredAuth: true,
+        path: '/admin/v1/orders/:id/fulfillment',
+        method: 'post',
+        handlers: [
+            middlewares.authenticate(),
+            middlewares.wrap(createFulfillment)
+        ],
+      },
+      /**
+       * Completes an Order.
+       */
+       {
+        requiredAuth: true,
+        path: '/admin/v1/orders/:id/complete',
+        method: 'post',
+        handlers: [
+            middlewares.authenticate(),
+            middlewares.wrap(completeOrder)
+        ],
+      },
+      /**
+       * Captures all the Payments associated with an Order.
+       */
+       {
+        requiredAuth: true,
+        path: '/admin/v1/orders/:id/capture',
+        method: 'post',
+        handlers: [
+            middlewares.authenticate(),
+            middlewares.wrap(capturePayment)
+        ],
       },
     ] 
 })

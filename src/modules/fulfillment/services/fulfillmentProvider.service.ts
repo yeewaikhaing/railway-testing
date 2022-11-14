@@ -8,6 +8,10 @@ import { ShippingOption } from "../../shipping/entities/shippingOption.entity";
 import { Cart } from "../../cart/entities/cart.entity";
 import { MedusaError } from "medusa-core-utils"
 import { Order } from "../../order/entities/order.entity";
+import { ShippingMethod } from "../../shipping/entities/shippingMethod.entity";
+import { LineItem } from "../../lineItem/entities/lineItem.entity";
+import { CreateFulfillmentOrder } from "../types/fulfillment";
+import { Fulfillment } from "../entities/fulfillment.entity";
 
 type FulfillmentProviderKey = `fp_${string}`
 
@@ -45,6 +49,21 @@ export class FulfillmentProviderService extends MedusaFulfillmentProviderService
       )
     }
   }
+
+  // async createFulfillment(
+  //   method: ShippingMethod,
+  //   items: LineItem[],
+  //   order: CreateFulfillmentOrder,
+  //   fulfillment: Omit<Fulfillment, "beforeInsert">
+  // ): Promise<Record<string, unknown>> {
+  //   const provider = this.retrieveProvider(method.shipping_option.provider_id)
+  //   return provider.createFulfillment(
+  //     method.data,
+  //     items,
+  //     order,
+  //     fulfillment
+  //   ) as unknown as Record<string, unknown>
+  // }
 
   // async calculatePrice(
   //   option: ShippingOption,

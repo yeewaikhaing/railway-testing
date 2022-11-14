@@ -71,6 +71,26 @@ export class PaymentProviderService extends MedusaPaymentProviderService {
       return payment
     }
 
+    async capturePayment(
+      paymentObj: Partial<Payment> & { id: string }
+    ): Promise<Payment> {
+      return await this.atomicPhase_(async (transactionManager) => {
+        const payment = await this.retrievePayment(paymentObj.id)
+        const provider = this.retrieveProvider(payment.provider_id)
+        payment.data = await provider
+          .withTransaction(transactionManager)
+          .capturePayment(payment)
+  
+        const now = new Date()
+        payment.captured_at = now.toISOString()
+  
+        const paymentRepo = transactionManager.getCustomRepository(
+          this.container.paymentRepository
+        )
+        return await paymentRepo.save(payment)
+      })
+    }
+  
     
     async cancelPayment(
       paymentObj: Partial<Payment> & { id: string }

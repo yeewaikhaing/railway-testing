@@ -3,7 +3,7 @@ import { OrderService as MedusaOrderService } from "@medusajs/medusa/dist/servic
 import { OrderRepository } from '../repositories/order.repository';
 import { Service } from 'medusa-extender';
 import { User } from "../../user/entities/user.entity";
-import {buildQuery} from "@medusajs/medusa/dist/utils";
+import {buildQuery, setMetadata} from "@medusajs/medusa/dist/utils";
 import { FlagRouter } from '@medusajs/medusa/dist/utils/flag-router';
 import { FindConfig, QuerySelector, Selector } from '@medusajs/medusa/dist/types/common';
 import { Order } from '../entities/order.entity';
@@ -11,30 +11,43 @@ import { TotalsService } from '../../cart/services/totals.service';
 import { LineItem } from '../../lineItem/entities/lineItem.entity';
 import { MedusaError } from "medusa-core-utils"
 import { Fulfillment } from '../../fulfillment/entities/fulfillment.entity';
-import { ClaimOrder, Return, Swap } from '@medusajs/medusa';
+import { ClaimOrder, EventBusService, InventoryService, Return, Swap } from '@medusajs/medusa';
 import { PaymentProviderService } from '../../payment/services/paymentProvider.service';
 import { OrderStatus,FulfillmentStatus,PaymentStatus } from "@medusajs/medusa/dist/models/order";
+import { UpdateOrderInput } from '../types/orders';
+import { Address } from '../../customer/v1/entities/address.entity';
+import { AddressRepository } from '../../customer/v1/repositories/address.repository';
+import { CustomerService } from '../../customer/v1/services/customer.service';
+import { DiscountService } from '../../discount/services/discount.service';
+import { FulfillmentProviderService } from '../../fulfillment/services/fulfillmentProvider.service';
+import { FulfillmentService } from '../../fulfillment/services/fulfillment.service';
+import { LineItemService } from '../../lineItem/services/lineItem.service';
+import { RegionService } from '../../region/services/region.service';
+import { CartService } from '../../cart/services/cart.service';
+import { CreateFulfillmentOrder, FulFillmentItemType } from '../../fulfillment/types/fulfillment';
+import { FulfillmentItem } from '../../fulfillment/entities/fulfillmentItem.entity';
+import { Payment } from '../../payment/entities/payment.entity';
 
 
 type InjectedDependencies = {
     manager: EntityManager;
     orderRepository: typeof OrderRepository;
-    customerService: any;
+    customerService: CustomerService;
     paymentProviderService: any;
     shippingOptionService: any;
     shippingProfileService: any;
-    discountService: any;
-    fulfillmentProviderService: any;
-    fulfillmentService: any;
-    lineItemService: any;
+    discountService: DiscountService;
+    fulfillmentProviderService: FulfillmentProviderService;
+    fulfillmentService: FulfillmentService;
+    lineItemService: LineItemService;
     totalsService: TotalsService;
-    regionService: any;
-    cartService: any;
-    addressRepository: any;
+    regionService: RegionService;
+    cartService: CartService;
+    addressRepository: typeof AddressRepository;
     giftCardService: any;
     draftOrderService: any;
-    inventoryService: any;
-    eventBusService: any;
+    inventoryService: InventoryService;
+    eventBusService: EventBusService;
     //loggedInUser: User;
     loggedInUser?: User;
     orderService: OrderService;
@@ -54,6 +67,243 @@ export class OrderService extends MedusaOrderService {
         this.container = container;
     }
 
+    /**
+   * Captures payment for an order.
+   * @param orderId - id of order to capture payment for.
+   * @return result of the update operation.
+   */
+  async capturePayment(orderId: string): Promise<Order> {
+    return await this.atomicPhase_(async (manager) => {
+      const orderRepo = manager.getCustomRepository(this.container.orderRepository)
+      const order = await this.retrieve(orderId, { relations: ["payments"] })
+
+      if (order.status === "canceled") {
+        throw new MedusaError(
+          MedusaError.Types.NOT_ALLOWED,
+          "A canceled order cannot capture payment"
+        )
+      }
+
+      const paymentProviderServiceTx : PaymentProviderService =
+        this.container.paymentProviderService.withTransaction(manager)
+
+      const payments: Payment[] = []
+      for (const p of order.payments) {
+        if (p.captured_at === null) {
+          const result = await paymentProviderServiceTx
+            .capturePayment(p)
+            .catch(async (err) => {
+              await this.container.eventBusService
+                .withTransaction(manager)
+                .emit(OrderService.Events.PAYMENT_CAPTURE_FAILED, {
+                  id: orderId,
+                  payment_id: p.id,
+                  error: err,
+                  no_notification: order.no_notification,
+                })
+            })
+
+          if (result) {
+            payments.push(result)
+          } else {
+            payments.push(p)
+          }
+        } else {
+          payments.push(p)
+        }
+      }
+
+      order.payments = payments
+      order.payment_status = payments.every((p) => p.captured_at !== null)
+        ? PaymentStatus.CAPTURED
+        : PaymentStatus.REQUIRES_ACTION
+
+      const result = await orderRepo.save(order)
+
+      if (order.payment_status === PaymentStatus.CAPTURED) {
+        await this.container.eventBusService
+          .withTransaction(manager)
+          .emit(OrderService.Events.PAYMENT_CAPTURED, {
+            id: result.id,
+            no_notification: order.no_notification,
+          })
+      }
+
+      return result
+    })
+  }
+
+    /**
+   * Updates an order. Metadata updates should
+   * use dedicated method, e.g. `setMetadata` etc. The function
+   * will throw errors if metadata updates are attempted.
+   * @param orderId - the id of the order. Must be a string that
+   *   can be casted to an ObjectId
+   * @param update - an object with the update values.
+   * @return resolves to the update result.
+   */
+  async update(orderId: string, update: UpdateOrderInput): Promise<Order> {
+    return await this.atomicPhase_(async (manager) => {
+      const order = await this.retrieve(orderId)
+
+      if (order.status === "canceled") {
+        throw new MedusaError(
+          MedusaError.Types.NOT_ALLOWED,
+          "A canceled order cannot be updated"
+        )
+      }
+
+      if (
+        (update.payment || update.items) &&
+        (order.fulfillment_status !== "not_fulfilled" ||
+          order.payment_status !== "awaiting" ||
+          order.status !== "pending")
+      ) {
+        throw new MedusaError(
+          MedusaError.Types.NOT_ALLOWED,
+          "Can't update shipping, billing, items and payment method when order is processed"
+        )
+      }
+
+      if (update.status || update.fulfillment_status || update.payment_status) {
+        throw new MedusaError(
+          MedusaError.Types.NOT_ALLOWED,
+          "Can't update order statuses. This will happen automatically. Use metadata in order for additional statuses"
+        )
+      }
+
+      const {
+        metadata,
+        shipping_address,
+        billing_address,
+        no_notification,
+        items,
+        ...rest
+      } = update
+
+      if (update.metadata) {
+        order.metadata = setMetadata(order, metadata ?? {})
+      }
+
+      if (update.shipping_address) {
+        await this.updateShippingAddress(order, shipping_address as Address)
+      }
+
+      if (update.billing_address) {
+        await this.updateBillingAddress(order, billing_address as Address)
+      }
+
+      if (update.no_notification) {
+        order.no_notification = no_notification ?? false
+      }
+
+      const lineItemServiceTx = this.container.lineItemService.withTransaction(manager)
+      if (update.items) {
+        for (const item of items as LineItem[]) {
+          await lineItemServiceTx.create({
+            ...item,
+            order_id: orderId,
+          })
+        }
+      }
+
+      for (const [key, value] of Object.entries(rest)) {
+        order[key] = value
+      }
+
+      const orderRepo = manager.getCustomRepository(this.container.orderRepository)
+      const result = await orderRepo.save(order)
+
+      await this.container.eventBusService
+        .withTransaction(manager)
+        .emit(OrderService.Events.UPDATED, {
+          id: orderId,
+          no_notification: order.no_notification,
+        })
+      return result
+    })
+  }
+
+  
+
+  /**
+   * Updates the order's billing address.
+   * @param order - the order to update
+   * @param address - the value to set the billing address to
+   * @return the result of the update operation
+   */
+   protected async updateBillingAddress(
+    order: Order,
+    address: Address
+  ): Promise<void> {
+    const addrRepo = this.manager.getCustomRepository(this.container.addressRepository)
+    address.country_code = address.country_code?.toLowerCase() ?? null
+
+    const region = await this.container.regionService
+      .withTransaction(this.manager)
+      .retrieve(order.region_id, {
+        relations: ["countries"],
+      })
+
+    if (!region.countries.find(({ iso_2 }) => address.country_code === iso_2)) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        "Shipping country must be in the order region"
+      )
+    }
+
+    address.country_code = address.country_code?.toLowerCase() ?? null
+
+    if (order.billing_address_id) {
+      const addr = await addrRepo.findOne({
+        where: { id: order.billing_address_id },
+      })
+
+      await addrRepo.save({ ...addr, ...address })
+    } else {
+      const created = addrRepo.create({ ...address })
+      await addrRepo.save(created)
+    }
+  }
+
+   /**
+   * Updates the order's shipping address.
+   * @param order - the order to update
+   * @param address - the value to set the shipping address to
+   * @return the result of the update operation
+   */
+    protected async updateShippingAddress(
+      order: Order,
+      address: Address
+    ): Promise<void> {
+      const addrRepo = this.manager.getCustomRepository(this.container.addressRepository)
+      address.country_code = address.country_code?.toLowerCase() ?? null
+  
+      const region = await this.container.regionService
+        .withTransaction(this.manager)
+        .retrieve(order.region_id, {
+          relations: ["countries"],
+        })
+  
+      if (!region.countries.find(({ iso_2 }) => address.country_code === iso_2)) {
+        throw new MedusaError(
+          MedusaError.Types.INVALID_DATA,
+          "Shipping country must be in the order region"
+        )
+      }
+  
+      if (order.shipping_address_id) {
+        const addr = await addrRepo.findOne({
+          where: { id: order.shipping_address_id },
+        })
+  
+        await addrRepo.save({ ...addr, ...address })
+      } else {
+        const created = addrRepo.create({ ...address })
+        await addrRepo.save(created)
+      }
+    }
+  
     /**
    * Archives an order. It only alloved, if the order has been fulfilled
    * and payment has been captured.
@@ -104,6 +354,139 @@ export class OrderService extends MedusaOrderService {
     })
   }
 
+  /**
+   * Creates fulfillments for an order.
+   * In a situation where the order has more than one shipping method,
+   * we need to partition the order items, such that they can be sent
+   * to their respective fulfillment provider.
+   * @param orderId - id of order to cancel.
+   * @param itemsToFulfill - items to fulfil.
+   * @param config - the config to cancel.
+   * @return result of the update operation.
+   */
+   async createFulfillment(
+    orderId: string,
+    itemsToFulfill: FulFillmentItemType[],
+    config: {
+      no_notification?: boolean
+      metadata?: Record<string, unknown>
+    } = {
+      no_notification: undefined,
+      metadata: {},
+    }
+  ): Promise<Order> {
+    const { metadata, no_notification } = config
+
+    return await this.atomicPhase_(async (manager) => {
+      // NOTE: we are telling the service to calculate all totals for us which
+      // will add to what is fetched from the database. We want this to happen
+      // so that we get all order details. These will thereafter be forwarded
+      // to the fulfillment provider.
+      const order = await this.retrieve(orderId, {
+        select: [
+          "subtotal",
+          "shipping_total",
+          "discount_total",
+          "tax_total",
+          "gift_card_total",
+          "total",
+        ],
+        relations: [
+          "discounts",
+          "discounts.rule",
+          "region",
+          "fulfillments",
+          "shipping_address",
+          "billing_address",
+          "shipping_methods",
+          "shipping_methods.shipping_option",
+          "items",
+          "items.adjustments",
+          "items.variant",
+          "items.variant.product",
+          "payments",
+        ],
+      })
+
+      if (order.status === OrderStatus.CANCELED) {
+        throw new MedusaError(
+          MedusaError.Types.NOT_ALLOWED,
+          "A canceled order cannot be fulfilled"
+        )
+      }
+
+      if (!order.shipping_methods?.length) {
+        throw new MedusaError(
+          MedusaError.Types.NOT_ALLOWED,
+          "Cannot fulfill an order that lacks shipping methods"
+        )
+      }
+
+      const fulfillments = await this.container.fulfillmentService
+        .withTransaction(manager)
+        .createFulfillment(
+          order as unknown as CreateFulfillmentOrder,
+          itemsToFulfill,
+          {
+            metadata,
+            no_notification: no_notification,
+            order_id: orderId,
+          }
+        )
+      let successfullyFulfilled: FulfillmentItem[] = []
+      for (const f of fulfillments) {
+        successfullyFulfilled = [...successfullyFulfilled, ...f.items]
+      }
+
+      order.fulfillment_status = FulfillmentStatus.FULFILLED
+
+      // Update all line items to reflect fulfillment
+      for (const item of order.items) {
+        const fulfillmentItem = successfullyFulfilled.find(
+          (f) => item.id === f.item_id
+        )
+
+        if (fulfillmentItem) {
+          const fulfilledQuantity =
+            (item.fulfilled_quantity || 0) + fulfillmentItem.quantity
+
+          // Update the fulfilled quantity
+          await this.container.lineItemService.withTransaction(manager).update(item.id, {
+            fulfilled_quantity: fulfilledQuantity,
+          })
+
+          if (item.quantity !== fulfilledQuantity) {
+            order.fulfillment_status = FulfillmentStatus.PARTIALLY_FULFILLED
+          }
+        } else {
+          if (item.quantity !== item.fulfilled_quantity) {
+            order.fulfillment_status = FulfillmentStatus.PARTIALLY_FULFILLED
+          }
+        }
+      }
+      const orderRepo = manager.getCustomRepository(this.container.orderRepository)
+
+      order.fulfillments = [...order.fulfillments, ...fulfillments]
+
+      const result = await orderRepo.save(order)
+
+      const evaluatedNoNotification =
+        no_notification !== undefined ? no_notification : order.no_notification
+
+      const eventBusTx = this.container.eventBusService.withTransaction(manager)
+      for (const fulfillment of fulfillments) {
+        await eventBusTx.emit(OrderService.Events.FULFILLMENT_CREATED, {
+          id: orderId,
+          fulfillment_id: fulfillment.id,
+          no_notification: evaluatedNoNotification,
+        })
+      }
+
+      return result
+    })
+  }
+
+  
   /**
    * Cancels an order.
    * Throws if fulfillment process has been initiated.
