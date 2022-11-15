@@ -12,6 +12,7 @@ import { PaymentSession } from "../entities/paymentSession.entity";
 import { MedusaError } from "medusa-core-utils"
 import { Cart } from "../../cart/entities/cart.entity";
 import { Payment } from "../entities/payment.entity";
+import { Refund } from "../../refund/entities/refund.entity";
 
 type PaymentProviderKey = `pp_${string}` | "systemPaymentProviderService"
 
@@ -43,6 +44,90 @@ export class PaymentProviderService extends MedusaPaymentProviderService {
         this.paymentProviderRepository = container.paymentProviderRepository;
     }
 
+    async refundPayment(
+      payObjs: Payment[],
+      amount: number,
+      reason: string,
+      note?: string
+    ): Promise<Refund> {
+      return await this.atomicPhase_(async (transactionManager) => {
+        const payments = await this.listPayments({
+          id: payObjs.map((p) => p.id),
+        })
+  
+        let order_id!: string
+        const refundable = payments.reduce((acc, next) => {
+          order_id = next.order_id
+          if (next.captured_at) {
+            return (acc += next.amount - next.amount_refunded)
+          }
+  
+          return acc
+        }, 0)
+  
+        if (refundable < amount) {
+          throw new MedusaError(
+            MedusaError.Types.NOT_ALLOWED,
+            "Refund amount is higher that the refundable amount"
+          )
+        }
+  
+        let balance = amount
+  
+        const used: string[] = []
+  
+        const paymentRepo = transactionManager.getCustomRepository(
+          this.container.paymentRepository
+        )
+        let paymentToRefund = payments.find(
+          (payment) => payment.amount - payment.amount_refunded > 0
+        )
+  
+        while (paymentToRefund) {
+          const currentRefundable =
+            paymentToRefund.amount - paymentToRefund.amount_refunded
+  
+          const refundAmount = Math.min(currentRefundable, balance)
+  
+          const provider = this.retrieveProvider(paymentToRefund.provider_id)
+          paymentToRefund.data = await provider
+            .withTransaction(transactionManager)
+            .refundPayment(paymentToRefund, refundAmount)
+  
+          paymentToRefund.amount_refunded += refundAmount
+          await paymentRepo.save(paymentToRefund)
+  
+          balance -= refundAmount
+  
+          used.push(paymentToRefund.id)
+  
+          if (balance > 0) {
+            paymentToRefund = payments.find(
+              (payment) =>
+                payment.amount - payment.amount_refunded > 0 &&
+                !used.includes(payment.id)
+            )
+          } else {
+            paymentToRefund = undefined
+          }
+        }
+  
+        const refundRepo = transactionManager.getCustomRepository(
+          this.container.refundRepository
+        )
+  
+        const toCreate = {
+          order_id,
+          amount,
+          reason,
+          note,
+        }
+  
+        const created = refundRepo.create(toCreate)
+        return await refundRepo.save(created)
+      })
+    }
+  
     async retrievePayment(
       id: string,
       relations: string[] = []

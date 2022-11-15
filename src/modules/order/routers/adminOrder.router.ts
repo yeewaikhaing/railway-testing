@@ -15,6 +15,7 @@ import completeOrder from '../handlers/admin/complete-order';
 import capturePayment from '../handlers/admin/capture-payment';
 import createShippment from '../handlers/admin/create-shippment';
 import cancelFulfillment from '../handlers/admin/cancel-fulfillment';
+import refundPayment from '../handlers/admin/refund-payment';
 
 export const defaultAdminOrdersRelations = [
     "customer",
@@ -271,6 +272,18 @@ export const defaultAdminOrdersFields = [
         handlers: [
             middlewares.authenticate(),
             middlewares.wrap(capturePayment)
+        ],
+      },
+      /**
+       * Create a Refund.
+       */
+       {
+        requiredAuth: true,
+        path: '/admin/v1/orders/:id/refund',
+        method: 'post',
+        handlers: [
+            middlewares.authenticate(),
+            middlewares.wrap(refundPayment)
         ],
       },
     ] 

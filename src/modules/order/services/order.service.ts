@@ -33,7 +33,7 @@ type InjectedDependencies = {
     manager: EntityManager;
     orderRepository: typeof OrderRepository;
     customerService: CustomerService;
-    paymentProviderService: any;
+    paymentProviderService: PaymentProviderService;
     shippingOptionService: any;
     shippingProfileService: any;
     discountService: DiscountService;
@@ -66,6 +66,64 @@ export class OrderService extends MedusaOrderService {
         this.manager = container.manager;
         this.container = container;
     }
+
+   /**
+   * Refunds a given amount back to the customer.
+   * @param orderId - id of the order to refund.
+   * @param refundAmount - the amount to refund.
+   * @param reason - the reason to refund.
+   * @param note - note for refund.
+   * @param config - the config for refund.
+   * @return the result of the refund operation.
+   */
+  async createRefund(
+    orderId: string,
+    refundAmount: number,
+    reason: string,
+    note?: string,
+    config: { no_notification?: boolean } = {
+      no_notification: undefined,
+    }
+  ): Promise<Order> {
+    const { no_notification } = config
+
+    return await this.atomicPhase_(async (manager) => {
+      const order = await this.retrieve(orderId, {
+        select: ["refundable_amount", "total", "refunded_total"],
+        relations: ["payments"],
+      })
+
+      if (order.status === "canceled") {
+        throw new MedusaError(
+          MedusaError.Types.NOT_ALLOWED,
+          "A canceled order cannot be refunded"
+        )
+      }
+
+      if (refundAmount > order.refundable_amount) {
+        throw new MedusaError(
+          MedusaError.Types.NOT_ALLOWED,
+          "Cannot refund more than the original order amount"
+        )
+      }
+
+      const refund = await this.container.paymentProviderService
+        .withTransaction(manager)
+        .refundPayment(order.payments, refundAmount, reason, note)
+
+      const result = await this.retrieve(orderId)
+
+      const evaluatedNoNotification =
+        no_notification !== undefined ? no_notification : order.no_notification
+
+      await this.container.eventBusService.emit(OrderService.Events.REFUND_CREATED, {
+        id: result.id,
+        refund_id: refund.id,
+        no_notification: evaluatedNoNotification,
+      })
+      return result
+    })
+  }
 
     /**
    * Adds a shipment to the order to indicate that an order has left the
