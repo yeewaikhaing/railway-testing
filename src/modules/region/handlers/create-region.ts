@@ -139,7 +139,7 @@ import { RegionService } from "../services/region.service";
    */
   export default async (req, res) => {
     const validated = await validator(AdminPostRegionsReq, req.body)
-    console.log("validated->", validated);
+    //console.log("validated->", validated);
     
     const regionService: RegionService = req.scope.resolve(RegionService.resolutionKey);
     const manager: EntityManager = req.scope.resolve("manager")

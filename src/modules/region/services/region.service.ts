@@ -4,16 +4,10 @@ import {default as MeudsaRegionService} from "@medusajs/medusa/dist/services/reg
 import StoreService from '../../store/services/store.service';
 import { 
     EventBusService,
-    PaymentProviderService,
-    FulfillmentProviderService
 } from '@medusajs/medusa/dist/services';
 import { FlagRouter } from "@medusajs/medusa/dist/utils/flag-router"
 import { RegionRepository } from '../repositories/region.repository';
-import { CountryRepository } from '@medusajs/medusa/dist/repositories/country';
-import { CurrencyRepository } from '@medusajs/medusa/dist/repositories/currency';
 import { TaxProviderRepository } from '@medusajs/medusa/dist/repositories/tax-provider';
-import { PaymentProviderRepository } from '@medusajs/medusa/dist/repositories/payment-provider';
-import { FulfillmentProviderRepository } from '@medusajs/medusa/dist/repositories/fulfillment-provider';
 import { Region } from '../entities/region.entity';
 import { FindConfig, Selector } from "@medusajs/medusa/dist/types/common"
 import { MedusaError } from "medusa-core-utils"
@@ -21,6 +15,14 @@ import {buildQuery, setMetadata} from "@medusajs/medusa/dist/utils";
 import {CreateRegionInput} from "../types/region";
 import TaxInclusivePricingFeatureFlag from "@medusajs/medusa/dist/loaders/feature-flags/tax-inclusive-pricing"
 import { Currency } from '@medusajs/medusa';
+import { CountryRepository } from '../repositories/country.repository';
+import { PaymentProviderRepository } from '../../payment/repositories/paymentProvider.repository';
+import { FulfillmentProviderRepository } from '../../fulfillment/repositories/fulfillmentProvider.repository';
+import { PaymentProviderService } from '../../payment/services/paymentProvider.service';
+import { FulfillmentProviderService } from '../../fulfillment/services/fulfillmentProvider.service';
+import { CurrencyRepository } from '@medusajs/medusa/dist/repositories/currency';
+import { Country } from '../entities/country.entity';
+import { countries } from '../utils/countries';
 type InjectedDependencies = {
     manager: EntityManager
     storeService: StoreService
@@ -52,7 +54,134 @@ export class RegionService extends MeudsaRegionService {
         this.regionRepository = container.regionRepository;
     }
 
-    
+    /**
+   * Removes a country from a Region.
+   *
+   * @param regionId - the region to remove from
+   * @param code - a 2 digit alphanumeric ISO country code to remove
+   * @return the updated Region
+   */
+  async removeCountry(
+    regionId: string,
+    code: Country["iso_2"]
+  ): Promise<Region> {
+    return await this.atomicPhase_(async (manager) => {
+      const regionRepo = manager.getCustomRepository(this.regionRepository)
+
+      const region = await this.retrieve(regionId, { relations: ["countries"] })
+
+      // Check if region contains country. If not, we simpy resolve
+      if (
+        region.countries &&
+        !region.countries.map((c) => c.iso_2).includes(code)
+      ) {
+        return region
+      }
+
+      region.countries = region.countries.filter(
+        (country) => country.iso_2 !== code
+      )
+
+      const updated = await regionRepo.save(region)
+      await this.container.eventBusService
+        .withTransaction(manager)
+        .emit(RegionService.Events.UPDATED, {
+          id: updated.id,
+          fields: ["countries"],
+        })
+
+      return updated
+    })
+  }
+
+   /**
+   * Adds a country to the region.
+   *
+   * @param regionId - the region to add a country to
+   * @param code - a 2 digit alphanumeric ISO country code.
+   * @return the updated Region
+   */
+    async addCountry(regionId: string, code: Country["iso_2"]): Promise<Region> {
+      return await this.atomicPhase_(async (manager) => {
+        const regionRepo = manager.getCustomRepository(this.regionRepository)
+  
+        const country = await this.validateCountry(code, regionId)
+  
+        const region = await this.retrieve(regionId, { relations: ["countries"] })
+  
+        // Check if region already has country
+        if (
+          region.countries &&
+          region.countries.map((c) => c.iso_2).includes(country.iso_2)
+        ) {
+          return region
+        }
+  
+        region.countries = [...(region.countries || []), country]
+  
+        const updated = await regionRepo.save(region)
+  
+        await this.container.eventBusService
+          .withTransaction(manager)
+          .emit(RegionService.Events.UPDATED, {
+            id: updated.id,
+            fields: ["countries"],
+          })
+  
+        return updated
+      })
+    }
+   
+    /**
+   * Validates a country code. Will normalize the code before checking for
+   * existence.
+   *
+   * @param code - a 2 digit alphanumeric ISO country code
+   * @param regionId - the id of the current region to check against
+   * @return the validated Country
+   */
+  protected async validateCountry(
+    code: Country["iso_2"],
+    regionId: string
+  ): Promise<Country | never> {
+    const countryRepository = this.manager.getCustomRepository(
+      this.container.countryRepository
+    )
+
+    const countryCode = code.toUpperCase()
+    const isCountryExists = countries.some(
+      (country) => country.alpha2 === countryCode
+    )
+    if (!isCountryExists) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        "Invalid country code"
+      )
+    }
+
+    const country = await countryRepository.findOne({
+      where: {
+        iso_2: code.toLowerCase(),
+      },
+    })
+
+    if (!country) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        `Country with code ${code} not found`
+      )
+    }
+
+    if (country.region_id && country.region_id !== regionId) {
+      throw new MedusaError(
+        MedusaError.Types.DUPLICATE_ERROR,
+        `${country.display_name} already exists in region ${country.region_id}`
+      )
+    }
+
+    return country
+  }
+
     /**
    * Lists all regions based on a query
    *
@@ -96,7 +225,7 @@ export class RegionService extends MeudsaRegionService {
       
       const validated = await this.validateFields(toValidate)
 
-      console.log("validated *> ", validated);
+      //console.log("validated *> ", validated);
       
       if (
         this.featureFlagRouter_.isFeatureEnabled(
@@ -134,7 +263,7 @@ export class RegionService extends MeudsaRegionService {
         )
       }
       
-      console.log("validated ===> ", validated);
+     // console.log("validated ===> ", validated);
       
       for (const [key, value] of Object.entries(validated)) {
         regionObject[key] = value
@@ -166,7 +295,7 @@ export class RegionService extends MeudsaRegionService {
     .withTransaction(this.transactionManager_)
     .retrieve({ relations: ["currencies"] })
 
-    console.log("storeCurrencies => ", store.currencies);
+   // console.log("storeCurrencies => ", store.currencies);
   const storeCurrencies = store.currencies.map((curr) => curr.code)
   
   

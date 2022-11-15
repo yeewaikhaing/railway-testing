@@ -4,6 +4,8 @@ import { Region } from '../entities/region.entity';
 import listRegion from '../handlers/list-region';
 import getRegion from '../handlers/get-region';
 import createRegion from '../handlers/create-region';
+import addCountry from '../handlers/add-country';
+import removeCountry from '../handlers/remove-country';
 
 @Router({
     routes: 
@@ -44,6 +46,31 @@ import createRegion from '../handlers/create-region';
                 middlewares.wrap(createRegion)
             ],
         },
+        /**
+         * Add a country to the country list of a region.
+         */
+         {
+            requiredAuth: true,
+            path: '/admin/v1/regions/:region_id/countries',
+            method: 'post',
+            handlers: [
+                middlewares.authenticate(), 
+                middlewares.wrap(addCountry)
+            ],
+        },
+        /**
+         * Remove a country from the country list of a region.
+         */
+         {
+            requiredAuth: true,
+            path: '/admin/v1/regions/:region_id/countries/:country_code',
+            method: 'delete',
+            handlers: [
+                middlewares.authenticate(), 
+                middlewares.wrap(removeCountry)
+            ],
+        },
+
     ] 
 })
 export class RegionRouter {}
