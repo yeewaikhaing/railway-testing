@@ -12,7 +12,7 @@ import { Region } from '../entities/region.entity';
 import { FindConfig, Selector } from "@medusajs/medusa/dist/types/common"
 import { MedusaError } from "medusa-core-utils"
 import {buildQuery, setMetadata} from "@medusajs/medusa/dist/utils";
-import {CreateRegionInput} from "../types/region";
+import {CreateRegionInput, UpdateRegionInput} from "../types/region";
 import TaxInclusivePricingFeatureFlag from "@medusajs/medusa/dist/loaders/feature-flags/tax-inclusive-pricing"
 import { Currency } from '@medusajs/medusa';
 import { CountryRepository } from '../repositories/country.repository';
@@ -53,6 +53,76 @@ export class RegionService extends MeudsaRegionService {
         this.manager = container.manager;
         this.regionRepository = container.regionRepository;
     }
+
+    /**
+   * Updates a region
+   *
+   * @param regionId - the region to update
+   * @param update - the data to update the region with
+   * @return the result of the update operation
+   */
+  async update(regionId: string, update: UpdateRegionInput): Promise<Region> {
+    return await this.atomicPhase_(async (manager) => {
+      const regionRepository = manager.getCustomRepository(
+        this.regionRepository
+      )
+      const currencyRepository = manager.getCustomRepository(
+        this.currencyRepository_
+      )
+
+      const region = await this.retrieve(regionId)
+
+      const { metadata, currency_code, includes_tax, ...toValidate } = update
+
+      const validated = await this.validateFields(toValidate, region.id)
+
+      if (
+        this.featureFlagRouter_.isFeatureEnabled(
+          TaxInclusivePricingFeatureFlag.key
+        )
+      ) {
+        if (typeof includes_tax !== "undefined") {
+          region.includes_tax = includes_tax
+        }
+      }
+
+      if (currency_code) {
+        // will throw if currency is not added to store currencies
+        await this.validateCurrency(currency_code)
+        const currency = await currencyRepository.findOne({
+          where: { code: currency_code.toLowerCase() },
+        })
+
+        if (!currency) {
+          throw new MedusaError(
+            MedusaError.Types.INVALID_DATA,
+            `Could not find currency with code ${currency_code}`
+          )
+        }
+
+        region.currency_code = currency_code.toLowerCase()
+      }
+
+      if (metadata) {
+        region.metadata = setMetadata(region, metadata)
+      }
+
+      for (const [key, value] of Object.entries(validated)) {
+        region[key] = value
+      }
+
+      const result = await regionRepository.save(region)
+
+      await this.container.eventBusService
+        .withTransaction(manager)
+        .emit(RegionService.Events.UPDATED, {
+          id: result.id,
+          fields: Object.keys(update),
+        })
+
+      return result
+    })
+  }
 
     /**
    * Removes a country from a Region.

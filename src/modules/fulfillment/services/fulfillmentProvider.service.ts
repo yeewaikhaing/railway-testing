@@ -12,6 +12,7 @@ import { ShippingMethod } from "../../shipping/entities/shippingMethod.entity";
 import { LineItem } from "../../lineItem/entities/lineItem.entity";
 import { CreateFulfillmentOrder } from "../types/fulfillment";
 import { Fulfillment } from "../entities/fulfillment.entity";
+import { FulfillmentOption } from "../../region/routers/region.router";
 
 type FulfillmentProviderKey = `fp_${string}`
 
@@ -87,5 +88,21 @@ export class FulfillmentProviderService extends MedusaFulfillmentProviderService
   //   ) as unknown as Record<string, unknown>
   // }
 
-  
+  // async listFulfillmentOptions(
+  //   providerIds: string[]
+  // ): Promise<FulfillmentOption[]> {
+  //   return await Promise.all(
+  //     providerIds.map(async (p) => {
+  //       const provider = this.retrieveProvider(p)
+  //       return {
+  //         provider_id: p,
+  //         options: (await provider.getFulfillmentOptions()) as Record<
+  //           string,
+  //           unknown
+  //         >[],
+  //       }
+  //     })
+  //   )
+  // }
+
 }

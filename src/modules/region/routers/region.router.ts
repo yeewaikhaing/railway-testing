@@ -6,6 +6,8 @@ import getRegion from '../handlers/get-region';
 import createRegion from '../handlers/create-region';
 import addCountry from '../handlers/add-country';
 import removeCountry from '../handlers/remove-country';
+import getFulfillmentOptions from '../handlers/get-fulfillment-options';
+import updateRegion from '../handlers/update-region';
 
 @Router({
     routes: 
@@ -70,6 +72,30 @@ import removeCountry from '../handlers/remove-country';
                 middlewares.wrap(removeCountry)
             ],
         },
+        /**
+         * List Fulfillment Options available to the region.
+         */
+         {
+            requiredAuth: true,
+            path: '/admin/v1/regions/:region_id/fulfillment-options',
+            method: 'get',
+            handlers: [
+                middlewares.authenticate(), 
+                middlewares.wrap(getFulfillmentOptions)
+            ],
+        },
+        /**
+         * Update a region
+         */
+         {
+            requiredAuth: true,
+            path: '/admin/v1/regions/:region_id',
+            method: 'post',
+            handlers: [
+                middlewares.authenticate(), 
+                middlewares.wrap(updateRegion)
+            ],
+        },
 
     ] 
 })
@@ -95,4 +121,10 @@ export const defaultAdminRegionFields: (keyof Region)[] = [
     "payment_providers",
     "fulfillment_providers",
   ]
+
+  export class FulfillmentOption {
+    provider_id: string
+    options: unknown[]
+  }
+  
   
