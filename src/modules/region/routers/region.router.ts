@@ -8,6 +8,7 @@ import addCountry from '../handlers/add-country';
 import removeCountry from '../handlers/remove-country';
 import getFulfillmentOptions from '../handlers/get-fulfillment-options';
 import updateRegion from '../handlers/update-region';
+import deleteRegion from '../handlers/delete-region';
 
 @Router({
     routes: 
@@ -94,6 +95,18 @@ import updateRegion from '../handlers/update-region';
             handlers: [
                 middlewares.authenticate(), 
                 middlewares.wrap(updateRegion)
+            ],
+        },
+        /**
+         * Delete a region
+         */
+         {
+            requiredAuth: true,
+            path: '/admin/v1/regions/:region_id',
+            method: 'delete',
+            handlers: [
+                middlewares.authenticate(), 
+                middlewares.wrap(deleteRegion)
             ],
         },
 

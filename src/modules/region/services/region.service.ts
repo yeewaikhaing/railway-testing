@@ -55,6 +55,36 @@ export class RegionService extends MeudsaRegionService {
     }
 
     /**
+   * Deletes a region.
+   *
+   * @param regionId - the region to delete
+   * @return the result of the delete operation
+   */
+  async delete(regionId: string): Promise<void> {
+    return await this.atomicPhase_(async (manager) => {
+      const regionRepo = manager.getCustomRepository(this.regionRepository)
+      const countryRepo = manager.getCustomRepository(this.container.countryRepository)
+
+      const region = await this.retrieve(regionId, { relations: ["countries"] })
+
+      if (!region) {
+        return Promise.resolve()
+      }
+
+      await regionRepo.softRemove(region)
+      await countryRepo.update({ region_id: region.id }, { region_id: null })
+
+      await this.container.eventBusService
+        .withTransaction(manager)
+        .emit(RegionService.Events.DELETED, {
+          id: regionId,
+        })
+
+      return Promise.resolve()
+    })
+  }
+
+    /**
    * Updates a region
    *
    * @param regionId - the region to update
