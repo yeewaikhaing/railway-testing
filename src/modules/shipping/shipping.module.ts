@@ -1,4 +1,5 @@
 import { Module } from 'medusa-extender';
+import { AddAreaToCustomShippingMigration1669213443483 } from './migrations/addAreaToCustomShipping.migration';
 import { AdminShippingRouter } from './routers/adminShipping.router';
 import { ShippingProfileService } from './services/shippingProfile.service';
 import { ShippingProfileRepository } from './repositories/shippingProfile.repository';
@@ -26,7 +27,7 @@ import { ShippingMethod } from './entities/shippingMethod.entity';
         ShippingRouter, ShippingProfile, 
         ShippingProfileRepository, 
         ShippingProfileService, 
-        AdminShippingRouter
-    ]
+        AdminShippingRouter,
+        AddAreaToCustomShippingMigration1669213443483]
 })
 export class ShippingModule {}

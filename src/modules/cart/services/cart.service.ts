@@ -41,6 +41,11 @@ import { CustomShippingOptionService } from '../../shipping/services/customShipp
 import { CustomShippingOption } from '../../shipping/entities/customShippingOption.entity';
 import { Address } from '../../customer/v1/entities/address.entity';
 import { AddressPayload } from '../../customer/v1/types/address';
+//import { StorePostCartsCartCustomShipping } from '../handlers/add-custom-shipping';
+//import { CreateCustomShippingOptionInput } from '../../shipping/types/shipping-options';
+import { StorePostCartsCartShippingAddressReq } from '../handlers/add-shipping-address';
+import { CreateCustomShippingOptionAddressInput } from '../../shipping/types/shipping-options';
+import { defaultStoreCustomersFields, defaultStoreCustomersRelations } from '../../customer/v1/routers/customer.router';
 
 type TotalsConfig = {
     force_taxes?: boolean
@@ -88,6 +93,8 @@ export class CartService extends MedusaCartService {
         this.manager = container.manager;
         this.cartRepository = container.cartRepository;
     }
+
+    
 
     /**
    * Removes a discount based on a discount code.
@@ -166,7 +173,125 @@ export class CartService extends MedusaCartService {
   return false
 }
 
-    
+async addShippingAddress(
+  customerId: string,
+  cartId: string,
+  validated: StorePostCartsCartShippingAddressReq
+) {
+  const cartRepo = this.manager.getCustomRepository(this.cartRepository);
+
+  const { data, address_id} = validated;
+
+  const cart = await this.retrieve(cartId);
+
+  const shipping_options = await this.container.shippingOptionService.list({})
+
+    if (!shipping_options?.length) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        `A shipping option is required to create a cart`
+      )
+    }
+
+  let option_id = shipping_options[shipping_options.length - 1].id // Royal express
+
+  //check address_id is valid
+  const customer = await this.container.customerService.retrieve(customerId, {
+    relations: defaultStoreCustomersRelations,
+    select: defaultStoreCustomersFields,
+  });
+  
+  const address = this.validateShippingAddress(customer.addresses, address_id);
+  
+  //check the address has delivery area to calculate delivery price
+  if(!address.delivery_area) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      `Invalid shipping address data.`
+    )
+  }
+  let pricing_group = address.delivery_area.priceGroup;
+  // check the adddress has pricing group to get delivery price
+  if(!pricing_group) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      `System Error. This shipping address cannot be added.`
+    )
+  }
+  // override the shipping fees
+  let price = pricing_group.price;
+
+  cart.shipping_address_id = address_id;
+
+  // update shipping address of the cart
+  await cartRepo.save(cart);
+  
+  // save custom
+  const shipping_option = await this.container.shippingOptionService.retrieve(option_id);
+  let input = {
+    "price" : price,
+    "shipping_option_id": shipping_option.id,
+    "delivery_area_id": address.delivery_area.id,
+    "cart_id": cart.id,
+    "metadata": data
+  } as CreateCustomShippingOptionAddressInput
+  
+  // create custom shipping option data for overriding shipping fees
+  await this.container.customShippingOptionService.create(input);
+  
+  // create shipping data of the given the cart to the shipping_method table.
+  await this.addShippingMethod(
+    cartId,
+    option_id,
+    data
+  );
+ 
+}
+
+/**
+   * validate the customer's shipping address based on the passed address id.
+   * throws if no shipping address corresponds to the address_id
+   * @param addresses - the customer's addresses
+   * @param shipping_address_id - the address id to define shipping address
+   * @return Address
+   */
+ validateShippingAddress(
+  addresses: Address[],
+  shipping_address_id: string
+): Address | undefined {
+  const shipping_address = addresses?.find(
+    (add) => add.id === shipping_address_id
+  )
+  
+  if (!shipping_address) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "Wrong Shipping Address"
+    )
+  }
+
+  return shipping_address
+}
+
+// async addCustomShipping(
+//   cartId: string,
+//   validated: StorePostCartsCartCustomShipping
+// ) {
+
+//   const { option_id, price, data} = validated;
+
+//   const cart = await this.retrieve(cartId);
+//   const shipping_option = await this.container.shippingOptionService.retrieve(option_id);
+//   let input = {
+//     "price" : price,
+//     "shipping_option_id": shipping_option.id,
+//     "cart_id": cart.id,
+//     "metadata": data
+//   } as CreateCustomShippingOptionInput
+  
+//   await this.container.customShippingOptionService.create(input);
+  
+// }
     /**
    * Adds the shipping method to the list of shipping methods associated with
    * the cart. Shipping Methods are the ways that an order is shipped, whereas a
@@ -932,7 +1057,7 @@ export class CartService extends MedusaCartService {
             "shipping_methods",
             "shipping_address",
             "billing_address",
-            "gift_cards",
+            //"gift_cards",
             "customer",
             "region",
             "payment_sessions",
@@ -1043,15 +1168,15 @@ export class CartService extends MedusaCartService {
             }
           }
   
-          if ("gift_cards" in data) {
-            cart.gift_cards = []
+          // if ("gift_cards" in data) {
+          //   cart.gift_cards = []
   
-            await Promise.all(
-              (data.gift_cards ?? []).map(async ({ code }) => {
-                return this.applyGiftCard_(cart, code)
-              })
-            )
-          }
+          //   await Promise.all(
+          //     (data.gift_cards ?? []).map(async ({ code }) => {
+          //       return this.applyGiftCard_(cart, code)
+          //     })
+          //   )
+          // }
   
           if (data?.metadata) {
             cart.metadata = setMetadata(cart, data.metadata)
@@ -1090,6 +1215,46 @@ export class CartService extends MedusaCartService {
       )
     }
   
+    /**
+   * Updates the cart's billing address.
+   * @param cart - the cart to update
+   * @param addressOrId - the value to set the billing address to
+   * @param addrRepo - the repository to use for address updates
+   * @return the result of the update operation
+   */
+  protected async updateBillingAddress_(
+    cart: Cart,
+    addressOrId: AddressPayload | Partial<Address> | string,
+    addrRepo: AddressRepository
+  ): Promise<void> {
+    let address: Address
+    if (typeof addressOrId === `string`) {
+      address = (await addrRepo.findOne({
+        where: { id: addressOrId },
+      })) as Address
+    } else {
+      address = addressOrId as Address
+    }
+
+    address.country_code = address.country_code?.toLowerCase() ?? null
+
+    if (address.id) {
+      cart.billing_address = await addrRepo.save(address)
+    } else {
+      if (cart.billing_address_id) {
+        const addr = await addrRepo.findOne({
+          where: { id: cart.billing_address_id },
+        })
+
+        await addrRepo.save({ ...addr, ...address })
+      } else {
+        cart.billing_address = addrRepo.create({
+          ...address,
+        })
+      }
+    }
+  }
+
     protected async applyGiftCard_(cart: Cart, code: string): Promise<void> {
       const giftCard = await this.giftCardService_
         .withTransaction(this.transactionManager_)
@@ -1642,7 +1807,7 @@ export class CartService extends MedusaCartService {
     return await this.atomicPhase_(
       async (transactionManager: EntityManager) => {
         const cartRepo = transactionManager.getCustomRepository(this.cartRepository);
-        const addressRepo = transactionManager.getCustomRepository(this.container.addressRepository);
+       // const addressRepo = transactionManager.getCustomRepository(this.container.addressRepository);
 
         const rawCart: DeepPartial<Cart> = {
           context: data.context ?? {},
@@ -1655,7 +1820,7 @@ export class CartService extends MedusaCartService {
         //     await this.getValidatedSalesChannel(data.sales_channel_id)
         //   ).id
         // }
-console.log("data 1 => ", data);
+      //console.log("data 1 => ", data);
 
         if (data.email) {
           const customer = await this.createOrFetchUserFromEmail_(data.email)
@@ -1672,64 +1837,64 @@ console.log("data 1 => ", data);
         }
 
         rawCart.region_id = data.region_id
-        const region = await this.container.regionService
-          .withTransaction(transactionManager)
-          .retrieve(data.region_id, {
-            relations: ["countries"],
-          })
-        const regCountries = region.countries.map(({ iso_2 }) => iso_2)
+        // const region = await this.container.regionService
+        //   .withTransaction(transactionManager)
+        //   .retrieve(data.region_id, {
+        //     relations: ["countries"],
+        //   })
+        // const regCountries = region.countries.map(({ iso_2 }) => iso_2)
 
-        if (!data.shipping_address && !data.shipping_address_id) {
-          if (region.countries.length === 1) {
-            rawCart.shipping_address = addressRepo.create({
-              country_code: regCountries[0],
-            })
-          }
-        } else {
-          if (data.shipping_address) {
-            if (!regCountries.includes(data.shipping_address.country_code!)) {
-              throw new MedusaError(
-                MedusaError.Types.NOT_ALLOWED,
-                "Shipping country not in region"
-              )
-            }
-            rawCart.shipping_address = data.shipping_address
-          }
-          if (data.shipping_address_id) {
-            const addr = await addressRepo.findOne(data.shipping_address_id)
-            if (
-              addr?.country_code &&
-              !regCountries.includes(addr.country_code)
-            ) {
-              throw new MedusaError(
-                MedusaError.Types.NOT_ALLOWED,
-                "Shipping country not in region"
-              )
-            }
-            rawCart.shipping_address_id = data.shipping_address_id
-          }
-        }
+        // if (!data.shipping_address && !data.shipping_address_id) {
+        //   if (region.countries.length === 1) {
+        //     rawCart.shipping_address = addressRepo.create({
+        //       country_code: regCountries[0],
+        //     })
+        //   }
+        // } else {
+        //   if (data.shipping_address) {
+        //     if (!regCountries.includes(data.shipping_address.country_code!)) {
+        //       throw new MedusaError(
+        //         MedusaError.Types.NOT_ALLOWED,
+        //         "Shipping country not in region"
+        //       )
+        //     }
+        //     rawCart.shipping_address = data.shipping_address
+        //   }
+        //   if (data.shipping_address_id) {
+        //     const addr = await addressRepo.findOne(data.shipping_address_id)
+        //     if (
+        //       addr?.country_code &&
+        //       !regCountries.includes(addr.country_code)
+        //     ) {
+        //       throw new MedusaError(
+        //         MedusaError.Types.NOT_ALLOWED,
+        //         "Shipping country not in region"
+        //       )
+        //     }
+        //     rawCart.shipping_address_id = data.shipping_address_id
+        //   }
+        // }
         // end of shipping address
 
-        if (data.billing_address) {
-          if (!regCountries.includes(data.billing_address.country_code!)) {
-            throw new MedusaError(
-              MedusaError.Types.NOT_ALLOWED,
-              "Billing country not in region"
-            )
-          }
-          rawCart.billing_address = data.billing_address
-        }
-        if (data.billing_address_id) {
-          const addr = await addressRepo.findOne(data.billing_address_id)
-          if (addr?.country_code && !regCountries.includes(addr.country_code)) {
-            throw new MedusaError(
-              MedusaError.Types.NOT_ALLOWED,
-              "Billing country not in region"
-            )
-          }
-          rawCart.billing_address_id = data.billing_address_id
-        }
+        // if (data.billing_address) {
+        //   if (!regCountries.includes(data.billing_address.country_code!)) {
+        //     throw new MedusaError(
+        //       MedusaError.Types.NOT_ALLOWED,
+        //       "Billing country not in region"
+        //     )
+        //   }
+        //   rawCart.billing_address = data.billing_address
+        // }
+        // if (data.billing_address_id) {
+        //   const addr = await addressRepo.findOne(data.billing_address_id)
+        //   if (addr?.country_code && !regCountries.includes(addr.country_code)) {
+        //     throw new MedusaError(
+        //       MedusaError.Types.NOT_ALLOWED,
+        //       "Billing country not in region"
+        //     )
+        //   }
+        //   rawCart.billing_address_id = data.billing_address_id
+        // }
 
         const remainingFields: (keyof Cart)[] = [
           "context",

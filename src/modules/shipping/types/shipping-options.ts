@@ -3,6 +3,20 @@ import { ShippingOptionRequirement } from "@medusajs/medusa/dist/models/shipping
 import { Cart } from "../../cart/entities/cart.entity";
 import { Order } from "../../order/entities/order.entity";
 
+export type CreateCustomShippingOptionAddressInput = {
+  price: number
+  shipping_option_id: string
+  cart_id?: string
+  delivery_area_id?: string
+  metadata?: Record<string, unknown>
+}
+// export type CreateCustomShippingOptionInput = {
+//   price: number
+//   shipping_option_id: string
+//   cart_id?: string
+//   metadata?: Record<string, unknown>
+// }
+
 export type CreateShippingMethod = {
     data?: any
     shipping_option_id?: string

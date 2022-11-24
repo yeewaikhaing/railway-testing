@@ -34,6 +34,7 @@ export default class StoreService extends MedusaStoreService {
         this.storeRepository = container.storeRepository;
     }
   
+    
     /**
    * Retrieve the store settings. There is always a maximum of one store.
    * @param config The config object from which the query will be built

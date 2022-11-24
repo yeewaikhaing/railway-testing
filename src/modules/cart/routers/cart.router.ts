@@ -19,6 +19,8 @@ import setPaymentSession from '../handlers/set-payment-session';
 import completeCart from '../handlers/complete-cart';
 import { StorePostCartsCartReq } from '../handlers/update-cart';
 import updateCart from '../handlers/update-cart';
+//import addCustomShipping from '../handlers/add-custom-shipping';
+import addShippingAddress from '../handlers/add-shipping-address';
 
 export const defaultStoreCartFields: (keyof Cart)[] = []
 
@@ -47,10 +49,11 @@ export const defaultStoreCartRelations = [
          * Create a cart
          */
         {
-            requiredAuth: false,
+            requiredAuth: true,
             path: '/store/v1/carts',
             method: 'post',
             handlers: [
+                middlewares.authenticate(),
                 transformBody(StorePostCartReq),
                 middlewares.wrap(createCart)
             ],
@@ -141,6 +144,30 @@ export const defaultStoreCartRelations = [
 
       // Shipping Options
       /**
+       * Adds a Custom Shipping Method to the Cart
+       */
+      //  {
+      //   requiredAuth: false,
+      //   path: '/store/v1/carts/:id/custom-shippings',
+      //   method: 'post',
+      //   handlers: [
+      //       middlewares.wrap(addCustomShipping)
+      //   ],
+      // },
+
+      /**
+       * Adds a Shipping Address to the Cart
+       */
+       {
+        requiredAuth: true,
+        path: '/store/v1/carts/:cart_id/shipping-addresses',
+        method: 'post',
+        handlers: [
+            middlewares.authenticate(),
+            middlewares.wrap(addShippingAddress)
+        ],
+      },
+      /**
        * Adds a Shipping Method to the Cart
        */
        {
@@ -151,6 +178,7 @@ export const defaultStoreCartRelations = [
             middlewares.wrap(addShippingMethod)
         ],
       },
+      
       
       // Payment sessions
       /**

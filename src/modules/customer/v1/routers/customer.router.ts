@@ -123,4 +123,6 @@ export const defaultStoreCustomersFields: (keyof Customer)[] = [
 //   ]
 export const defaultStoreCustomersRelations = [
     "addresses",
+    "addresses.delivery_area",
+    "addresses.delivery_area.priceGroup"
 ]

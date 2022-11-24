@@ -199,7 +199,7 @@ export class StorePostCustomersCustomerAddressesReq {
   
     @IsString()
     @IsOptional()
-    country_code: string
+    country_code: string = 'mm'
   
     @IsOptional()
     @IsString()

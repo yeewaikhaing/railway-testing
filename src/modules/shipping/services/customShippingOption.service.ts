@@ -6,6 +6,8 @@ import { default as MedusaCustomShippingOptionService} from "@medusajs/medusa/di
 import { CustomShippingOption } from "../entities/customShippingOption.entity";
 import { FindConfig, Selector } from "@medusajs/medusa/dist/types/common";
 import { buildQuery } from "@medusajs/medusa/dist/utils";
+import { CreateCustomShippingOptionAddressInput } from "../types/shipping-options";
+//import { CreateCustomShippingOptionInput } from "../types/shipping-options";
 
 
 type InjectedDependencies = {
@@ -49,4 +51,53 @@ export class CustomShippingOptionService extends MedusaCustomShippingOptionServi
 
     return await customShippingOptionRepo.find(query)
   }
+
+  /**
+   * Creates a custom shipping option
+   * @param data - the custom shipping option to create
+   * @param config - any configurations if needed, including meta data
+   * @return resolves to the creation result
+   */
+   async create(
+    data: CreateCustomShippingOptionAddressInput
+  ): Promise<CustomShippingOption> {
+    const { cart_id, delivery_area_id, shipping_option_id, price, metadata } = data
+
+    const customShippingOptionRepo = this.manager.getCustomRepository(
+      this.customShippingOptionRepository
+    )
+
+    const customShippingOption = customShippingOptionRepo.create({
+      cart_id,
+      shipping_option_id,
+      delivery_area_id,
+      price,
+      metadata,
+    })
+    return await customShippingOptionRepo.save(customShippingOption)
+  }
+  
+  // /**
+  //  * Creates a custom shipping option
+  //  * @param data - the custom shipping option to create
+  //  * @param config - any configurations if needed, including meta data
+  //  * @return resolves to the creation result
+  //  */
+  // async create(
+  //   data: CreateCustomShippingOptionInput
+  // ): Promise<CustomShippingOption> {
+  //   const { cart_id, shipping_option_id, price, metadata } = data
+
+  //   const customShippingOptionRepo = this.manager.getCustomRepository(
+  //     this.customShippingOptionRepository
+  //   )
+
+  //   const customShippingOption = customShippingOptionRepo.create({
+  //     cart_id,
+  //     shipping_option_id,
+  //     price,
+  //     metadata,
+  //   })
+  //   return await customShippingOptionRepo.save(customShippingOption)
+  // }
 }

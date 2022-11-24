@@ -19,7 +19,9 @@ export type LineItemUpdate = {
   variant_id?: string
 }
 
-
+export type DiscountInput = {
+    code: string  
+}
 export type CartCreateProps = {
     region_id?: string
     email?: string
@@ -47,8 +49,8 @@ export type CartCreateProps = {
     shipping_address?: AddressPayload | string
     completed_at?: Date
     payment_authorized_at?: Date | null
-    gift_cards?: GiftCard[]
-    discounts?: Discount[]
+   // gift_cards?: GiftCard[]
+    discounts?: DiscountInput[]
     customer_id?: string
     context?: object
     metadata?: Record<string, unknown>

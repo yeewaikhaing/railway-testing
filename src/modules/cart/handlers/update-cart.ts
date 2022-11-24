@@ -14,7 +14,8 @@ import {
   import { AddressPayload } from "../../customer/v1/types/address";
   import { FeatureFlagDecorators } from "@medusajs/medusa/dist/utils/feature-flag-decorators"
   import { IsType } from "@medusajs/medusa/dist/utils/validators/is-type"
-import { CartService } from "@medusajs/medusa"
+import { CartService } from "../services/cart.service"
+
 //import { CartService } from "../services/cart.service"
   
   /**
@@ -134,8 +135,8 @@ import { CartService } from "@medusajs/medusa"
     const { id } = req.params
     const validated = req.validatedBody as StorePostCartsCartReq
   
-    const cartService: CartService = req.scope.resolve("cartService");
-    //const cartService = req.scope.resolve(CartService.resolutionKey);
+   // const cartService: CartService = req.scope.resolve("cartService");
+    const cartService:CartService = req.scope.resolve(CartService.resolutionKey);
     const manager: EntityManager = req.scope.resolve("manager")
   
     await manager.transaction(async (transactionManager) => {
@@ -194,11 +195,11 @@ import { CartService } from "@medusajs/medusa"
     @IsType([AddressPayload, String])
     shipping_address?: AddressPayload | string
   
-    @IsOptional()
-    @IsArray()
-    @ValidateNested({ each: true })
-    @Type(() => GiftCard)
-    gift_cards?: GiftCard[]
+    // @IsOptional()
+    // @IsArray()
+    // @ValidateNested({ each: true })
+    // @Type(() => GiftCard)
+    // gift_cards?: GiftCard[]
   
     @IsOptional()
     @IsArray()
