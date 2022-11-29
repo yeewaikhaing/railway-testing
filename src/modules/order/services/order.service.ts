@@ -27,6 +27,7 @@ import { CartService } from '../../cart/services/cart.service';
 import { CreateFulfillmentOrder, FulFillmentItemType } from '../../fulfillment/types/fulfillment';
 import { FulfillmentItem } from '../../fulfillment/entities/fulfillmentItem.entity';
 import { Payment } from '../../payment/entities/payment.entity';
+import { StorePostCartsCartPaymentTypeReq } from '../../cart/handlers/complete-cart';
 
 
 type InjectedDependencies = {
@@ -67,6 +68,29 @@ export class OrderService extends MedusaOrderService {
         this.container = container;
     }
 
+    /**
+   * Updates payment type(cod or prepaid) of the order created from the cartId.
+   * @param cartId - id of the cart already created the new order.
+   * @param paymentType - the payment type of the new order.
+   */
+    async updatePaymentType(cartId: string, validated: StorePostCartsCartPaymentTypeReq) {
+      let payment_type: string = validated.payment_type;
+      // const order = await this.retrieveByCartId(cartId,{
+      //   relations: ["payment_sessions"],
+      // });
+      const order = await this.retrieveByCartId(cartId);
+      
+      const payment = await this.container.paymentProviderService
+                        .retrieveByCartIdAndOrderId(cartId, order.id);
+      
+      if(payment) {
+        await this.container.paymentProviderService
+                .updatePayment(payment.id, {
+                  payment_type: payment_type
+                })
+      }
+
+    }
    /**
    * Refunds a given amount back to the customer.
    * @param orderId - id of the order to refund.
@@ -878,6 +902,7 @@ export class OrderService extends MedusaOrderService {
     return await this.decorateTotals(raw, totalsToSelect)
   }
 
+  
     /**
    * Gets an order by cart id.
    * @param cartId - cart id to find order

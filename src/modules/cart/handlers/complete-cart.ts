@@ -2,6 +2,10 @@ import { EntityManager } from "typeorm"
 import { AbstractCartCompletionStrategy } from "@medusajs/medusa/dist/interfaces"
 import { IdempotencyKey } from "@medusajs/medusa/dist/models/idempotency-key"
 import  IdempotencyKeyService  from "@medusajs/medusa/dist/services/idempotency-key";
+import { IsEnum } from "class-validator";
+import { validator } from "@medusajs/medusa/dist/utils/validator";
+import { OrderService } from "../../order/services/order.service";
+import { PaymentType } from "../../payment/entities/payment.entity";
 
 /**
  * @oas [post] /store/v1/carts/{id}/complete
@@ -76,12 +80,15 @@ import  IdempotencyKeyService  from "@medusajs/medusa/dist/services/idempotency-
  *     $ref: "#/components/responses/500_error"
  */
  export default async (req, res) => {
-    const { id } = req.params
+    const { id } = req.params;
+    const validated = await validator(
+      StorePostCartsCartPaymentTypeReq,
+      req.body
+    )
   
     const manager: EntityManager = req.scope.resolve("manager")
-    const idempotencyKeyService: IdempotencyKeyService = req.scope.resolve(
-      "idempotencyKeyService"
-    )
+    const idempotencyKeyService: IdempotencyKeyService = req.scope.resolve("idempotencyKeyService");
+    const orderService: OrderService = req.scope.resolve(OrderService.resolutionKey);
   
     const headerKey = req.get("Idempotency-Key") || ""
   
@@ -110,6 +117,16 @@ import  IdempotencyKeyService  from "@medusajs/medusa/dist/services/idempotency-
       idempotencyKey,
       req.request_context
     )
-  
+   // update order's payment type of the given cart id
+   await orderService.updatePaymentType(id, validated);
+   
     res.status(response_code).json(response_body)
+
+  }
+
+  export class StorePostCartsCartPaymentTypeReq {
+    @IsEnum(PaymentType, {
+      message: `Invalid payment type, must be one of "cod" or "prepaid"`,
+    })
+    payment_type: PaymentType
   }

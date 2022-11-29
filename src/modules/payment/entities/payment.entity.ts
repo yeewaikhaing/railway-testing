@@ -3,6 +3,10 @@ import { Entity as MedusaEntity } from "medusa-extender";
 import { Payment as MedusaPayment } from "@medusajs/medusa/dist/models/payment";
 import { resolveDbType } from "@medusajs/medusa/dist/utils/db-aware-column"
 
+export enum PaymentType {
+    COD = "cod",
+    PREPAID = "prepaid"
+  }
 @MedusaEntity({override: MedusaPayment})
 @Entity()
 export class Payment extends MedusaPayment{

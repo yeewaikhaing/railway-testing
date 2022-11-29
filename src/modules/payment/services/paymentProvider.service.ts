@@ -13,6 +13,7 @@ import { MedusaError } from "medusa-core-utils"
 import { Cart } from "../../cart/entities/cart.entity";
 import { Payment } from "../entities/payment.entity";
 import { Refund } from "../../refund/entities/refund.entity";
+import { FindConfig } from "@medusajs/medusa/dist/types/common";
 
 type PaymentProviderKey = `pp_${string}` | "systemPaymentProviderService"
 
@@ -197,7 +198,36 @@ export class PaymentProviderService extends MedusaPaymentProviderService {
       })
     }
   
-    
+    /**
+   * Gets an order by cart id.
+   * @param cartId - cart id to find order
+   * @param config - the config to be used to find order
+   * @return the order document
+   */
+  async retrieveByCartIdAndOrderId(
+    cartId: string,
+    orderId: string
+  ):  Promise<Payment | never> {
+    const paymentRepo = this.manager.getCustomRepository(this.container.paymentRepository)
+
+    const query = {
+      where: { 
+        cart_id: cartId,
+        order_id: orderId
+      },
+    } as FindConfig<Payment>
+
+    const payment = await paymentRepo.findOne(query)
+
+    if (!payment) {
+      throw new MedusaError(
+        MedusaError.Types.NOT_FOUND,
+        `Payment with cart id: ${cartId} & order id: ${orderId} was not found`
+      )
+    }
+
+    return payment;
+  }
     
     async deleteSession(
       paymentSession: PaymentSession
@@ -258,7 +288,12 @@ export class PaymentProviderService extends MedusaPaymentProviderService {
     
     async updatePayment(
       paymentId: string,
-      data: { order_id?: string; swap_id?: string }
+      data: { 
+        order_id?: string; 
+        swap_id?: string;
+        payment_type?: string;
+        payment_proof?: string;
+      }
     ): Promise<Payment> {
       return await this.atomicPhase_(async (transactionManager) => {
         const payment = await this.retrievePayment(paymentId)
@@ -269,6 +304,15 @@ export class PaymentProviderService extends MedusaPaymentProviderService {
   
         if (data?.swap_id) {
           payment.swap_id = data.swap_id
+        }
+
+        if(data?.payment_type) {
+          payment.payment_type = data.payment_type
+        }
+
+        if(data?.payment_proof) {
+          payment.payment_proof = data.payment_proof;
+          payment.payment_transferred_at = new Date().toISOString()
         }
   
         const payRepo = transactionManager.getCustomRepository(
