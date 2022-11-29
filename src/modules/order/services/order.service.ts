@@ -28,6 +28,7 @@ import { CreateFulfillmentOrder, FulFillmentItemType } from '../../fulfillment/t
 import { FulfillmentItem } from '../../fulfillment/entities/fulfillmentItem.entity';
 import { Payment } from '../../payment/entities/payment.entity';
 import { StorePostCartsCartPaymentTypeReq } from '../../cart/handlers/complete-cart';
+import { StorePostCartsOrderPaymentPrepaidReq } from '../handlers/storefront/make-order-payment';
 
 
 type InjectedDependencies = {
@@ -68,6 +69,49 @@ export class OrderService extends MedusaOrderService {
         this.container = container;
     }
 
+    /**
+   * Updates prepaid payment data of the given order id
+   * @param order_id - id of the order
+   * @param validated - payment proof & payment_id
+   */
+    async createPrepaidPayment(
+      order_id: string,
+      validated: StorePostCartsOrderPaymentPrepaidReq
+      ):  Promise<Payment | never>{
+      
+        const{ payment_proof, cart_id} = validated;
+
+        // check order_id & cart_id is valid
+        
+        const payment = await this.container.paymentProviderService
+        .retrieveByCartIdAndOrderId(cart_id, order_id);
+
+        if(payment) {
+           // check payment transfer time is valid.
+          let created_at = payment.created_at;
+          let now = new Date();
+          const msBetweenDates = now.getTime() - created_at.getTime();
+          const hours = Math.abs(msBetweenDates) / 36e5;
+          //console.log("hours => ", hours);
+          if(hours > 48) {
+            throw new MedusaError(
+              MedusaError.Types.INVALID_DATA,
+              `This payment is not allowed because the order was already cancelled.`
+            )
+          }
+          
+          // update payment data
+          await this.container.paymentProviderService
+              .updatePayment(payment.id, {
+                payment_proof: payment_proof
+              });
+
+          return payment;
+         
+        }
+
+       
+    }
     /**
    * Updates payment type(cod or prepaid) of the order created from the cartId.
    * @param cartId - id of the cart already created the new order.

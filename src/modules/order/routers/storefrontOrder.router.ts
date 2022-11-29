@@ -4,6 +4,7 @@ import { Order } from '../entities/order.entity';
 import getOrderByCart from '../handlers/storefront/get-order-by-cart';
 import getOrder from '../handlers/storefront/get-order';
 import lookUpOrder from '../handlers/storefront/look-up-order';
+import makeOrderPayment from '../handlers/storefront/make-order-payment';
 
 @Router({
     routes: 
@@ -39,6 +40,18 @@ import lookUpOrder from '../handlers/storefront/look-up-order';
             method: 'get',
             handlers: [
                 middlewares.wrap(lookUpOrder)
+            ],
+        },
+        /**
+         * Create prepaid payment data
+         */
+         {
+            requiredAuth: true,
+            path: '/store/v1/orders/:id/prepaid',
+            method: 'post',
+            handlers: [
+                middlewares.authenticate(),
+                middlewares.wrap(makeOrderPayment)
             ],
         },
     ] 

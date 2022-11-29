@@ -197,9 +197,9 @@ export class PaymentProviderService extends MedusaPaymentProviderService {
         return await paymentRepo.save(payment)
       })
     }
-  
+   
     /**
-   * Gets an order by cart id.
+   * Gets an Payment by cart id.
    * @param cartId - cart id to find order
    * @param config - the config to be used to find order
    * @return the order document
