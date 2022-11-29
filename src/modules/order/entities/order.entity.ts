@@ -3,6 +3,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne, OneToMany } from "typeorm
 import { Entity as MedusaEntity } from "medusa-extender";
 import { Order as MedusaOrder } from "@medusajs/medusa";
 import { Store } from "../../store/entities/store.entity";
+import { Payment } from "../../payment/entities/payment.entity";
 
 @MedusaEntity({override: MedusaOrder})
 @Entity()
@@ -26,4 +27,7 @@ export class Order extends MedusaOrder {
     @OneToMany(() => Order, (order) => order.parent)
     @JoinColumn({ name: 'id', referencedColumnName: 'order_parent_id' })
     children: Order[];
+
+    @OneToMany(() => Payment, (payment: Payment) => payment.order, { cascade: ["insert"] })
+    payments: Payment[]
 }

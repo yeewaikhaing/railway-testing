@@ -1,4 +1,5 @@
 import { Module } from 'medusa-extender';
+import { CustomizedPaymentMigration1669710778816 } from './migrations/customizedPayment.migration';
 import { PaymentProviderRepository } from './repositories/paymentProvider.repository';
 import { PaymentProviderService } from './services/paymentProvider.service';
 import { PaymentSession } from './entities/paymentSession.entity';
