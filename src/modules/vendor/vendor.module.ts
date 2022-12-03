@@ -1,5 +1,5 @@
 import { Module } from 'medusa-extender';
-import { AddDefaultCommissionToVendorMigration1666200511895 } from './migrations/addDefaultCommissionToVendor.migration';
+import { AddDefaultCommissionToVendorMigration3666200511895 } from './migrations/addDefaultCommissionToVendor.migration';
 import { VendorPaymentMigration2665246091359 } from './migrations/create-vendorPayment.migration';
 import { VendorPaymentService } from './services/vendorPayment.service';
 import { VendorPaymentRepository } from './repositories/vendorPayment.repository';
@@ -22,6 +22,6 @@ import { Vendor } from './entities/vendor.entity';
         VendorPaymentRepository, 
         VendorPaymentService, 
         VendorPaymentMigration2665246091359
-    , AddDefaultCommissionToVendorMigration1666200511895]
+    , AddDefaultCommissionToVendorMigration3666200511895]
 })
 export class VendorModule {}
