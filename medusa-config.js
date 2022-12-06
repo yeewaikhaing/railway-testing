@@ -30,10 +30,10 @@ const STORE_CORS = process.env.STORE_CORS || "http://localhost:8000";
 
 // Database URL (here we use a local database called medusa-development)
 const DATABASE_URL =
-  process.env.DATABASE_URL || "postgres://localhost/medusa-store";
+  process.env.DATABASE_URL || "postgresql://postgres:WhLDzgFZSvpI6AlxhyOe@containers-us-west-143.railway.app:7373/railway";
 
 // Medusa uses Redis, so this needs configuration as well
-const REDIS_URL = process.env.REDIS_URL || "redis://localhost:6379";
+const REDIS_URL = process.env.REDIS_URL || "redis://default:oo2WRsNuNCH5949OBqP3@containers-us-west-130.railway.app:6442";
 
 // Stripe keys
 const STRIPE_API_KEY = process.env.STRIPE_API_KEY || "";
