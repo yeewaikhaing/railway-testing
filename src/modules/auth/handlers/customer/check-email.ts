@@ -1,17 +1,11 @@
 
 /**
- * @oas [get] /v1/store/auth/email/{email}
+ * @oas [get] /store/v1/auth/email/{email}
  * operationId: "GetAuthEmail"
  * summary: "Check if email exists"
  * description: "Checks if a Customer with the given email has signed up."
  * parameters:
- *   - in: path
- *     name: email
- *     schema:
- *       type: string
- *       format: email
- *     required: true
- *     description: The email to check if exists.
+ *   - (path) email=* {string} The email to check if exists. 
  * responses:
  *  "200":
  *    description: OK

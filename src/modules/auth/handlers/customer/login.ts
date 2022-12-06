@@ -1,11 +1,11 @@
 /**
- * @oas [post] /v1/store/auth
+ * @oas [post] /store/v1/auth
  * operationId: "PostAuth"
  * summary: "Authenticate a User"
  * x-authenticated: false
  * description: "Logs a User in and authorizes them to manage Store settings."
  * parameters:
- *   - (body) login_info=* {string} The User's email or phone.
+ *   - (body) login_id=* {string} The User's email or phone.
  *   - (body) password=* {string} The User's password.
  * tags:
  *   - Auth
@@ -35,7 +35,7 @@ export default async (req, res) => {
     const result = await manager.transaction(async (transactionManager) => {
       return await authService
         .withTransaction(transactionManager)
-        .authenticateCustomer(validated.login_info, validated.password)
+        .authenticateCustomer(validated.login_id, validated.password)
     })
   
     if (!result.success) {
@@ -64,7 +64,7 @@ export default async (req, res) => {
   }
   export class StorePostAuthReq {
     @IsNotEmpty()
-    login_info: string
+    login_id: string
   
     @IsNotEmpty()
     password: string

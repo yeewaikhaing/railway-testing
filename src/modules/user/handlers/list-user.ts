@@ -1,4 +1,3 @@
-
 /**
  * @oas [get] /admin/v1/users
  * operationId: "GetUsers"
@@ -75,8 +74,8 @@ export default async (req, res) => {
   )
 
 
-  console.log("listConfig,", listConfig);
-  console.log("filterablefileds, ", filterableFields);
+  //console.log("listConfig,", listConfig);
+  //console.log("filterablefileds, ", filterableFields);
   
   
     // const [users, count] = await userService.listAndCount( {

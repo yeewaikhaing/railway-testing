@@ -10,7 +10,7 @@ import {
   import { Connection } from 'typeorm';
   import ProductSubscriber from '../subscribers/product.subscriber';
   
-  @Middleware({ requireAuth: true, routes: [{ method: 'post', path: '/admin/products' }] })
+  @Middleware({ requireAuth: true, routes: [{ method: 'post', path: '/admin/v1/products' }] })
   export default class AttachProductSubscribersMiddleware implements MedusaMiddleware {
       public consume(req: MedusaAuthenticatedRequest | Request, res: Response, next: NextFunction): void | Promise<void> {
           const { connection } = req.scope.resolve(MEDUSA_RESOLVER_KEYS.manager) as { connection: Connection };

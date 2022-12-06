@@ -4,7 +4,7 @@ import { validator } from "@medusajs/medusa/dist/utils/validator";
 import { EntityManager } from "typeorm"
 
 /**
- * @oas [post] /v1/store/customers/reset-password-token
+ * @oas [post] /store/v1/customers/reset-password-token
  * summary: Request Password Reset
  * description: "Creates a reset password token to be used in a subsequent /reset-password request. The password token should be sent out of band e.g. via email and will not be returned."
  * requestBody:

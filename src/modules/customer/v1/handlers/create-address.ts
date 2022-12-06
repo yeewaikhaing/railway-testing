@@ -3,12 +3,17 @@ import { ValidateNested } from "class-validator"
 import { defaultStoreCustomersFields } from "../routers/customer.router";
 import { defaultStoreCustomersRelations } from "../routers/customer.router";
 import { CustomerService } from "../services/customer.service";
-import { AddressCreatePayload } from "../types/address";
+//import { AddressCreatePayload } from "../types/address";
 import { validator } from "@medusajs/medusa/dist/utils/validator";
 import { EntityManager } from "typeorm"
-
+import {
+  IsBoolean,
+  IsOptional,
+  IsString,
+} from "class-validator";
+import { DeliveryAreaService } from "../../../delivery/services/deliveryArea.service";
 /**
- * @oas [post] /customers/me/addresses
+ * @oas [post] /store/v1/customers/me/addresses
  * summary: "Add a Shipping Address"
  * description: "Adds a Shipping Address to a Customer's saved addresses."
  * x-authenticated: true
@@ -17,12 +22,51 @@ import { EntityManager } from "typeorm"
  *     application/json:
  *       schema:
  *         required:
- *           - address
+ *           - first_name
+ *           - last_name
+ *           - city
+ *           - address_1
+ *           - delivery_area_id
  *         properties:
- *           address:
- *             description: "The Address to add to the Customer."
- *             anyOf:
- *               - $ref: "#/components/schemas/address"
+ *           first_name:
+ *             description: "The first name of the Customer."
+ *             type: string
+ *           last_name:
+ *             description: "The last name of the Customer."
+ *             type: string
+ *           city:
+ *             description: "The city name of the Customer."
+ *             type: string
+ *           address_1:
+ *             description: "The address 1 of the Customer."
+ *             type: string   
+ *           address_2:
+ *             description: "The address 2 of the Customer."
+ *             type: string   
+ *           phone:
+ *             description: "The phone number of the Customer."
+ *             type: string   
+ *           company:
+ *             description: "The company name of the Customer."
+ *             type: string  
+ *           country_code:
+ *             description: "The country code of the address."
+ *             type: string 
+ *           province:
+ *             description: "The province of the address."
+ *             type: string
+ *           postal_code:
+ *             description: "The postal code of the address."
+ *             type: string
+ *           default_billing:
+ *             description: "Set this address to default billing"
+ *             type: boolean
+ *           default_shipping:
+ *             description: "Set this address to default shipping"
+ *             type: boolean
+ *           delivery_area_id:
+ *             description: "The delivery area id the location"
+ *             type: string
  * x-codeSamples:
  *   - lang: JavaScript
  *     label: JS Client
@@ -97,14 +141,20 @@ export default async (req, res) => {
     StorePostCustomersCustomerAddressesReq,
     req.body
   )
+  //console.log("validated, ", validated);
+  const{ delivery_area_id } = validated;
 
-  const customerService: CustomerService = req.scope.resolve("customerService")
+  const deliveryAreaService: DeliveryAreaService = req.scope.resolve(DeliveryAreaService.resolutionKey);
+  const customerService: CustomerService = req.scope.resolve(CustomerService.resolutionKey);
 
+  //check the given area_id is valid
+  await deliveryAreaService.retrieve(delivery_area_id);
+  
   const manager: EntityManager = req.scope.resolve("manager")
   await manager.transaction(async (transactionManager) => {
     return await customerService
       .withTransaction(transactionManager)
-      .addAddress(id, validated.address)
+      .addAddress(id, validated)
   })
 
   const customer = await customerService.retrieve(id, {
@@ -113,10 +163,66 @@ export default async (req, res) => {
   })
 
   res.status(200).json({ customer })
+ 
 }
 
 export class StorePostCustomersCustomerAddressesReq {
-  @ValidateNested()
-  @Type(() => AddressCreatePayload)
-  address: AddressCreatePayload
+  // @ValidateNested({each: true})
+  // @Type(() => AddressCreatePayload)
+  // address: AddressCreatePayload
+
+  @IsString()
+    first_name: string
+  
+    @IsString()
+    last_name: string
+  
+    @IsString()
+    phone: string
+  
+    @IsOptional()
+    metadata: object
+  
+    @IsOptional()
+    @IsString()
+    company: string
+  
+    @IsString()
+    address_1: string
+  
+    @IsOptional()
+    @IsString()
+    address_2: string
+  
+    @IsString()
+    city: string
+  
+    @IsString()
+    @IsOptional()
+    country_code: string = 'mm'
+  
+    @IsOptional()
+    @IsString()
+    province: string
+  
+    @IsString()
+    @IsOptional()
+    postal_code: string
+
+    @IsString()
+    delivery_area_id: string
+
+    @IsString()
+    @IsOptional()
+    label: string = 'Default'
+
+    @IsBoolean()
+    @IsOptional()
+    default_billing: boolean = false
+
+    @IsBoolean()
+    @IsOptional()
+    default_shipping: boolean = false
+    
+
 }

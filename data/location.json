@@ -1,0 +1,82 @@
+{
+    "cities": [
+        {
+            "id": "1",
+            "city_name": "Yangon",
+            "areas": [
+                {
+                    "area_name": "Hlaing",
+                    "city_id": "1"
+                },
+                {
+                    "area_name": "Hledan",
+                    "city_id": "1"
+                },
+                {
+                    "area_name": "Insein",
+                    "city_id": "1"
+                },
+                {
+                    "area_name": "San Chaung",
+                    "city_id": "1"
+                },
+                {
+                    "area_name": "Hmawbi",
+                    "city_id": "1"
+                }
+            ]
+        },
+        {
+            "id": "2",
+            "city_name": "Mandalay",
+            "areas": [
+                {
+                    "area_name": "Mahar Aung Myay",
+                    "city_id": "2"
+                },
+                {
+                    "area_name": "Chan Myan Tharsi",
+                    "city_id": "2"
+                },
+                {
+                    "area_name": "Chan Aye Tharsan",
+                    "city_id": "2"
+                },
+                {
+                    "area_name": "Pathein Gyi",
+                    "city_id": "2"
+                },
+                {
+                    "area_name": "Myauk Pyin",
+                    "city_id": "2"
+                }
+            ]
+        },
+        {
+            "id": "3",
+            "city_name": "Pyay",
+            "areas": [
+                {
+                    "area_name": "Innma",
+                    "city_id": "3"
+                },
+                {
+                    "area_name": "Okshipin",
+                    "city_id": "3"
+                },
+                {
+                    "area_name": "Padigone",
+                    "city_id": "3"
+                },
+                {
+                    "area_name": "Paukkaung",
+                    "city_id": "3"
+                },
+                {
+                    "area_name": "Shwedaung",
+                    "city_id": "3"
+                }
+            ]
+        }
+      ]
+}

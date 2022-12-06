@@ -14,32 +14,41 @@ import {AdminPostPriceGroupReq} from './handlers/create-pricing-group';
 
 @Router({
     routes: [
-        {
+        /**
+         * Create a pricing group
+         */
+         {
             requiredAuth: true,
-            path: '/v1/admin/pricing-groups',
+            path: '/admin/v1/pricing-groups',
             method: 'post',
             handlers: [
-                transformBody(AdminPostPriceGroupReq),
-                middlewares.authenticate(), // authentication is required
+                middlewares.authenticate(), 
                 middlewares.wrap(createPricingGroup)
             ],
         },
+       /**
+         * Get a pricing group
+         */
         {
             requiredAuth: true,
-            path: '/v1/admin/pricing-groups/:id',
+            path: '/admin/v1/pricing-groups/:id',
             method: 'get',
             handlers: [
                 middlewares.authenticate(), 
                 middlewares.wrap(getPricingGroup)
             ],
         },
+        /**
+         * List  pricing groups
+         */
         {
             requiredAuth: true,
-            path: '/v1/admin/pricing-groups',
+            path: '/admin/v1/pricing-groups',
             method: 'get',
             handlers: [
                 transformQuery(AdminGetPriceGroupParams, {
                     isList: true,
+                    defaultRelations: ["areas"]
                   }),
                 middlewares.authenticate(), 
                 middlewares.wrap(listPricingGroup)
@@ -55,9 +64,12 @@ import {AdminPostPriceGroupReq} from './handlers/create-pricing-group';
                 middlewares.wrap(updatePricingGroup)
             ],
         },
+        /**
+         * Delete a Price group
+         */
         {
             requiredAuth: true,
-            path: '/v1/admin/pricing-groups/:id',
+            path: '/admin/v1/pricing-groups/:id',
             method: 'delete',
             handlers: [
                 middlewares.authenticate(),

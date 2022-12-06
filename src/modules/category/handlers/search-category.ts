@@ -1,5 +1,5 @@
 /**
- * @oas [get] /v1/admin/search-categories
+ * @oas [get] /admin/v1/search-categories
  * description: "Retrieves a list of category"
  * x-authenticated: true
  * parameters:

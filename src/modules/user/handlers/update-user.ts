@@ -18,7 +18,16 @@
  *           last_name:
  *             description: "The name of the User."
  *             type: string
- *           role:
+ *            user_name:
+ *             description: "The user name of the User."
+ *             type: string
+ *            email:
+ *             description: "The email of the User."
+ *             type: string
+ *            phone:
+ *             description: "The phone umber of the User."
+ *             type: string
+ *           custom_role:
  *             description: "Userrole assigned to the user."
  *             type: string
  *             enum: [admin, member, developer]

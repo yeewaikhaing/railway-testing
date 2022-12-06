@@ -1,14 +1,5 @@
-import {
-    IsArray,
-    IsBoolean,
-    IsEnum,
-    IsOptional,
-    IsString,
-    ValidateNested,
-  } from "class-validator"
-import { Vendor } from "../entities/vendor.entity";
+
 import { VendorPaymentTypes } from "../entities/vendorPayment.entity";
-import { FindConfig} from "@medusajs/medusa/dist/types/common";
 
 /**
  * Service Level DTOs
@@ -17,10 +8,10 @@ import { FindConfig} from "@medusajs/medusa/dist/types/common";
  export type CreateVendorInput = {
   nrcno: string
   primary_phone: string
+  default_commission: number
   secondary_phone?: string
   user_id?: string
   payments?: CreateVendorPaymentInput[]
-  
 }
 
 export type CreateVendorPaymentInput = {
@@ -32,11 +23,3 @@ export type CreateVendorPaymentInput = {
   wallet_number?: string
   vendor_id?: string
 }
-//export type FindVendorConfig = FindConfig<Vendor> & VendorInfoListLoadConfig
-
-// export type VendorInfoListLoadConfig = {
-  
-//   vendor_id?: string
-//   user_id?: string
-//   store_id?: string
-// }

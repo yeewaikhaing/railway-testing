@@ -1,7 +1,5 @@
-import { MedusaAuthenticatedRequest, Router } from 'medusa-extender';
-import { UserService } from "@medusajs/medusa/dist/services";
-import { Response, NextFunction } from "express";
-import { User } from "@medusajs/medusa/dist";
+import {Router } from 'medusa-extender';
+
 import middlewares, {
     transformBody,
     transformQuery,
@@ -48,7 +46,7 @@ export const defaultAdminVendorRelations = [
             ],
         },
           /**
-           * List  Users
+           * List  Vendors
            */
           {
             requiredAuth: true,

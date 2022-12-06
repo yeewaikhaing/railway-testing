@@ -15,6 +15,15 @@ import { PriceGroupModule } from './modules/priceGroup/priceGroup.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { CategoryModule } from './modules/category/category.module';
 import { VendorModule } from './modules/vendor/vendor.module';
+import { DeliveryAreaModule } from './modules/delivery/deliveryArea.module';
+import { DiscountModule } from './modules/discount/discount.module';
+import { RegionModule } from './modules/region/region.module';
+import { LineItemModule } from './modules/lineItem/lineItem.module';
+import { CartModule } from './modules/cart/cart.module';
+import { ShippingModule } from './modules/shipping/shipping.module';
+import { FulfillmentModule } from "./modules/fulfillment/fulfillment.module";
+import { PaymentModule } from "./modules/payment/payment.module";
+import { RefundModule } from "./modules/refund/refund.module";
 
 async function bootstrap() {
     const expressInstance = express();
@@ -33,6 +42,15 @@ async function bootstrap() {
         PriceGroupModule,
         CategoryModule,
         VendorModule,
+        DeliveryAreaModule,
+        DiscountModule,
+        RegionModule,
+        LineItemModule,
+        CartModule,
+        ShippingModule,
+        FulfillmentModule,
+        PaymentModule,
+        RefundModule,
     ]);
     
     const port = config?.serverConfig?.port ?? 9000;

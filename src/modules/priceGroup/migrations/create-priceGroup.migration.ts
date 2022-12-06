@@ -10,7 +10,7 @@ export class CreatePriceGroupMigration1664100391671 implements MigrationInterfac
         CREATE TABLE "price_group" 
         (
             "id" character varying NOT NULL, 
-            "name" character varying NOT NULL UNIQUE,
+            "name" character varying NOT NULL,
             "price" float NOT NULL DEFAULT 0,
             "is_disabled" boolean NOT NULL DEFAULT FALSE,
             "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), 

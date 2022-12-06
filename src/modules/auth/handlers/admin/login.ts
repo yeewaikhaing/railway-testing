@@ -1,10 +1,10 @@
 /**
- * @oas [post] /v1/admin/auth
+ * @oas [post] /admin/v1/auth
  * summary: "Authenticate a User"
  * x-authenticated: false
  * description: "Logs a User in and authorizes them to manage Store settings."
  * parameters:
- *   - (body) login_info=* {string} The User's email or phone.
+ *   - (body) login_id=* {string} The User's email or phone.
  *   - (body) password=* {string} The User's password.
  * tags:
  *   - Auth

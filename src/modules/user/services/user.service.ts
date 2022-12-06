@@ -10,12 +10,17 @@ import {buildQuery, setMetadata} from "@medusajs/medusa/dist/utils";
 import { CreateUserInput, UpdateUserInput} from '../types/user';
 import  { validateEmail } from '@medusajs/medusa/dist/utils/is-email'
 import StoreService from '../../store/services/store.service';
+import { FlagRouter } from '@medusajs/medusa/dist/utils/flag-router';
+import  AnalyticsConfigService  from "@medusajs/medusa/dist/services/analytics-config";
+
 type ConstructorParams = {
     manager: EntityManager;
     userRepository: typeof UserRepository;
     eventBusService: EventBusService;
     loggedInUser?: User;
     storeService: any;
+    featureFlagRouter: FlagRouter;
+    analyticsConfigService: AnalyticsConfigService;
 };
 
 @Service({ scope: 'SCOPED', override: MedusaUserService })
@@ -59,7 +64,7 @@ export  class UserService extends MedusaUserService {
     })
   }
 
-    /**
+  /**
    * Updates a user.
    * @param {object} userId - id of the user to update
    * @param {object} update - the values to be updated on the user
@@ -289,11 +294,21 @@ export  class UserService extends MedusaUserService {
     const userRepo = manager.getCustomRepository(this.userRepository)
 
     const loggedInUser = await this.retrieve(user_id);
-    // retrieve th users associated with the login user's store
-    if(loggedInUser.store_id){
-      selector.store_id = loggedInUser.store_id;
+    //retrieve th users associated with the login user's store
+    // if(loggedInUser.store_id){
+    //   selector.store_id = loggedInUser.store_id;
+    // }
+    // console.log("logggedInUser store id =>", loggedInUser.store_id);
+    
+    let store_id = Object.keys(this.container).includes("loggedInUser")
+        ? this.container.loggedInUser.store_id
+        : null;
+    //console.log("store_id => ", store_id);
+    
+    if(store_id) {
+      selector.store_id = store_id;
     }
-
+    
     const selector_ = { ...selector }
     let q: string | undefined
     if ("q" in selector_) {
@@ -322,7 +337,7 @@ export  class UserService extends MedusaUserService {
     selector: Selector<User>,
     config: FindConfig<User> = {}
   ): Promise<User> {
-    const manager = this.manager_
+    const manager = this.manager
 
     const userRepo = manager.getCustomRepository(this.userRepository);
 

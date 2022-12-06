@@ -4,13 +4,15 @@ import {
     BeforeInsert,
     ManyToOne,
     Index,
-    JoinColumn
+    JoinColumn,
+    OneToMany
 } from "typeorm"; 
 import { Entity as MedusaEntity } from "medusa-extender";
 import { SoftDeletableEntity } from "@medusajs/medusa";
 import { generateEntityId } from "@medusajs/medusa/dist/utils";
 import { City } from "./city.entity";
 import { PriceGroup } from "../../priceGroup/priceGroup.entity";
+import { Address } from "../../customer/v1/entities/address.entity";
 
 @MedusaEntity()
 @Entity()
@@ -22,16 +24,19 @@ export class DeliveryArea extends SoftDeletableEntity{
     @Column({nullable: false})
     city_id: string;
 
-    @ManyToOne(() => City, (city: City) => city.areas )
+    @ManyToOne(() => City, (city: City) => city.areas, {eager: true} )
     @JoinColumn({name: 'city_id'})
     city: City
 
     @Column({nullable: true})
     pricing_id: string;
 
-    @ManyToOne(() => PriceGroup, (pricing: PriceGroup) => pricing.areas )
+    @ManyToOne(() => PriceGroup, (pricing: PriceGroup) => pricing.areas)//, {eager:true} 
     @JoinColumn({name: 'pricing_id'})
     priceGroup: PriceGroup;
+
+    // @OneToMany(() => Address, (address: Address) => address.delivery_area)
+    // addresses: Address[];
 
     @BeforeInsert()
     private beforeInsert(): void {
@@ -39,21 +44,25 @@ export class DeliveryArea extends SoftDeletableEntity{
     }
 }
 /**
- * @schema city
- * title: "city"
- * description: "Represents a city"
+ * @schema area
+ * title: "delivery area"
+ * description: "Represents a area"
  * required:
- *   - city_name
+ *   - area_name
+ *   - city_id
  * properties:
  *   id:
  *     type: string
- *     description: The city's ID
- *     example: city_01G2SG30J8C85S4A5CHM2S1NS2
- *   city_name:
+ *     description: The area's ID
+ *     example: area_01G2SG30J8C85S4A5CHM2S1NS2
+ *   area_name:
  *     type: string
- *     description: The city's name
- *   is_disabled:
- *     type: Double
- *     description: The city's price
+ *     description: The area's name
+ *   city:
+ *     type: object
+ *     description: The city of area
+ *   priceGroup:
+ *     type: string
+ *     description: The price group of area
  *     
  * */

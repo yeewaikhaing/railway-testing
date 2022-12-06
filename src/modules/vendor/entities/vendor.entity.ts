@@ -27,6 +27,9 @@ export class Vendor extends SoftDeletableEntity{
     @Column({nullable: true})
     secondary_phone: string;
 
+    @Column({nullable:false, type: 'float'})
+    default_commission: number;
+
     @Column({nullable: true,type: "time with time zone"})
     initial_join_date: Timestamp;
 

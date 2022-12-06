@@ -1,5 +1,5 @@
 /**
- * @oas [get] /v1/admin/pricing-groups/{id}
+ * @oas [get] /admin/v1/pricing-groups/{id}
  * description: "Retrieves the pricing group."
  * x-authenticated: true
  * parameters:
@@ -44,6 +44,8 @@ import { Request, Response } from "express";
       PriceGroupService.resolutionKey
     );
   
-    const priceGroup = await priceGroupService.retrieve(id)
-    res.status(200).json({ price_group: priceGroup })
+    const priceGroup = await priceGroupService.retrieve(id, {
+      relations: ["areas"]
+      })
+    res.status(200).json({ priceGroup: priceGroup })
   }

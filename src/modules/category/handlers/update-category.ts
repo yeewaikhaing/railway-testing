@@ -1,6 +1,6 @@
 
 /**
- * @oas [post] /v1/admin/categories/{id}
+ * @oas [post] /admin/v1/categories/{id}
  * description: "Update a category."
  * x-authenticated: true
  * parameters:

@@ -74,7 +74,7 @@ import middlewares from '@medusajs/medusa/dist/api/middlewares';
          */
     {
         requiredAuth: true,
-        path: '/store/v1/auth/username/:username',
+        path: '/store/v1/auth/username/:user_name',
         method: 'get',
         handlers: [
           wrapHandler(checkCustomerUsername)

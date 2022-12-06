@@ -1,5 +1,5 @@
 /**
- * @oas [get] /v1/admin/categories
+ * @oas [get] /admin/v1/categories
  * description: "Retrieves a list of category"
  * x-authenticated: true
  *   - lang: Shell

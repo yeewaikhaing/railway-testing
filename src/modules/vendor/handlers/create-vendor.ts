@@ -13,7 +13,11 @@
  *           - user
  *           - payments
  *           - store
+ *           - default_commision
  *         properties:
+ *           default_commission:
+ *             description: "The default commision value of the Vendor"
+ *             type: number
  *           nrcno:
  *             description: "The Nrcno of the Vendor"
  *             type: string
@@ -125,6 +129,7 @@
     "nrcno": "12/sakhana(n)123456",
     "primary_phone": "09123456789",
     "secondary_phone": "09123456789",
+    "default_commission": 10,
     "store": {
         "name": "BT21",
         "store_type": "offical store",
@@ -186,6 +191,7 @@ import {
     IsOptional,
     IsString,
     ValidateNested,
+    IsNumber
   } from "class-validator"
 import { MedusaError } from "medusa-core-utils";
 import { VendorPaymentTypes } from "../entities/vendorPayment.entity";
@@ -389,4 +395,6 @@ export class AdminVendorPaymentPostReq {
     @IsOptional()
     secondary_phone?: string
   
+    @IsNumber()
+    default_commission: number
   }
